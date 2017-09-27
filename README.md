@@ -42,7 +42,17 @@ Anything that implements the `read`, `write`, `seek`, `flush`, and `close` metho
 Memory I/O
 ==========
 
-TBD: Implementation of I/O primitives for reading and writing memory buffers.
+## w = new unixio.MioWrite();
+
+## n = w.length();
+
+## buf = w.buffer();
+
+## s = w.toString();
+
+## r = new unixio.MioRead(buf);
+
+## r = new unixio.MioRead(s);
 
 Buffered I/O
 ============
@@ -119,6 +129,10 @@ Note that strings are returned with their quotation marks in place.
 ## try { b = await cio.printf(format, …); }
 
 Writes formatted text in the manner of `printf`.
+
+## try { s = await unixio.sprintf(format, …); }
+
+Formats text to a string, using memory I/O.
 
 Constants
 =========
