@@ -71,9 +71,9 @@ Creates an I/O buffer for reads and writes to the specified stream (file descrip
 
 ## try { n = await bio.close(); }
 
-## try { n = await bio.setbuf(len, style); }
+## try { n = await bio.ungetb(b); }
 
-Flushes any existing writes, and sets the new buffer length and style (`IONBF`, `IOLBF`, `IOFBF`).
+Puts a byte back into the buffer for the next `read`.
 
 Character I/O
 =============
@@ -96,6 +96,10 @@ Opens a file for buffered character I/O in the manner of `fopen`.
 
 ## try { n = await cio.close(); }
 
+## try { n = await cio.ungetb(b); }
+
+Puts a byte back into the buffer for the next `read`.
+
 ## try { b = await cio.getb(); }
 
 Reads one byte from the stream, or returns unixio.EOF;
@@ -103,6 +107,10 @@ Reads one byte from the stream, or returns unixio.EOF;
 ## try { b = await cio.putb(b); }
 
 Writes one byte to the stream.
+
+## try { n = await cio.ungetc(c); }
+
+Puts a UTF-16 character back into the buffer for the next `read`.
 
 ## try { c = await cio.getc(); }
 
@@ -141,9 +149,6 @@ Constants
  * unixio.SEEK_SET
  * unixio.SEEK_CUR
  * unixio.SEEK_END
- * unixio.IONBF
- * unixio.IOLBF
- * unixio.IOFBF
  * unixio.stdin = new unixio.Cio(new unixio.Bio(new unixio.Fdio(0)));
  * unixio.stdout = new unixio.Cio(new unixio.Bio(new unixio.Fdio(1)));
  * unixio.stderr = new unixio.Cio(new unixio.Bio(new unixio.Fdio(2)));
