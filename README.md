@@ -130,6 +130,6 @@ Constants
  * unixio.IONBF
  * unixio.IOLBF
  * unixio.IOFBF
- * unixio.stdin = new unixio.Cio(new unxio.Bio(new unixio.Fdio(0)));
- * unixio.stdout = new unixio.Cio(new unxio.Bio(new unixio.Fdio(1)));
- * unixio.stderr = new unixio.Cio(new unxio.Bio(new unixio.Fdio(2)));
+ * unixio.stdin = new unixio.Cio(new unixio.Bio(new unixio.Fdio(0)));
+ * unixio.stdout = new unixio.Cio(new unixio.Bio(new unixio.Fdio(1)));
+ * unixio.stderr = new unixio.Cio(new unixio.Bio(new unixio.Fdio(2)));
