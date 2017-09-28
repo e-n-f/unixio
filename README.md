@@ -54,32 +54,12 @@ Memory I/O
 
 ## r = new unixio.MioRead(s);
 
-Buffered I/O
-============
-
-## bio = new unixio.Bio(stream);
-
-Creates an I/O buffer for reads and writes to the specified stream (file descriptor, abstract, or memory).
-
-## try { n = await bio.read(buffer, off, len); }
-
-## try { n = await bio.write(buffer, off, len); }
-
-## try { n = await bio.seek(off, whence); }
-
-## try { n = await bio.flush(); }
-
-## try { n = await bio.close(); }
-
-## try { n = await bio.ungetb(b); }
-
-Puts a byte back into the buffer for the next `read`.
-
 Character I/O
 =============
 
 ## cio = new unixio.Cio(stream);
 
+Creates an I/O buffer for reads and writes to the specified stream (file descriptor, abstract, or memory).
 Adds convenience functions for reading and writing text to and from the specified stream.
 
 ## try { cio = unixio.fopen(name, mode); }
@@ -149,6 +129,6 @@ Constants
  * unixio.SEEK_SET
  * unixio.SEEK_CUR
  * unixio.SEEK_END
- * unixio.stdin = new unixio.Cio(new unixio.Bio(new unixio.Fdio(0)));
- * unixio.stdout = new unixio.Cio(new unixio.Bio(new unixio.Fdio(1)));
- * unixio.stderr = new unixio.Cio(new unixio.Bio(new unixio.Fdio(2)));
+ * unixio.stdin = new unixio.Cio(new unixio.Fdio(0));
+ * unixio.stdout = new unixio.Cio(new unixio.Fdio(1));
+ * unixio.stderr = new unixio.Cio(new unixio.Fdio(2));
