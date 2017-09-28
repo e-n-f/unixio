@@ -24,7 +24,7 @@ Writes up to *len* bytes from the specified Buffer, beginning at offset *off*.
 
 ## try { n = await fdio.seek(off, whence); }
 
-Seeks the file descriptor to the specified offset. TBD: not in `fs`.
+Seeks the file descriptor to the specified offset.
 
 ## try { n = await fdio.flush(); }
 
@@ -42,20 +42,22 @@ Anything that implements the `read`, `write`, `seek`, `flush`, and `close` metho
 Memory I/O
 ==========
 
-## w = new unixio.MioWrite();
+## w = new unixio.Memio();
 
-## n = w.length();
+Opens a stream to append to the end of a new buffer.
 
 ## buf = w.buffer();
 
+## n = w.length();
+
 ## s = w.toString();
 
-## r = new unixio.MioRead(buf);
+## r = new unixio.Memio(buf);
 
-## r = new unixio.MioRead(s);
+Opens a stream to read from the start of an existing Buffer.
 
-Character I/O
-=============
+Buffered I/O
+============
 
 ## fp = new unixio.File(stream);
 

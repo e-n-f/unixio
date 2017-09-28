@@ -1,8 +1,12 @@
 'use strict';
 
-const fs = require('fs');
 const fsext = require('fs-ext');
 const fsextra = require('fs-extra');
+
+exports.EOF = -1
+exports.SEEK_SET = 0;
+exports.SEEK_CUR = 1;
+exports.SEEK_END = 2;
 
 exports.open = fsextra.open;
 exports.close = fsextra.close;
@@ -52,7 +56,7 @@ exports.Fdio = function(fd) {
 }
 
 exports.Memio = function(b) {
-	if (b === undefined) {
+	if (arguments.length == 0) {
 		this.buf = Buffer.alloc(1000);
 		this.fpos = 0;
 		this.end = 0;
@@ -88,13 +92,13 @@ exports.Memio = function(b) {
 	};
 
 	this.seek = async function(off, whence) {
-		if (whence == 0 && off >= 0) { // SEEK_SET
+		if (whence == exports.SEEK_SET && off >= 0) {
 			this.fpos = off;
 			return this.fpos;
-		} else if (whence == 1 && fpos + off >= 0) { // SEEK_CUR
+		} else if (whence == exports.SEEK_CUR && fpos + off >= 0) {
 			this.fpos += off;
 			return this.fpos;
-		} else if (whence == 2 && this.end + off >= 0) { // SEEK_END
+		} else if (whence == exports.SEEK_END && this.end + off >= 0) {
 			this.fpos = this.end + off;
 			return this.fpos;
 		}
@@ -107,5 +111,17 @@ exports.Memio = function(b) {
 
 	this.flush = async function() {
 
+	};
+
+	this.buffer = async function() {
+		return this.buf;
+	};
+
+	this.length = async function() {
+		return this.end;
+	};
+
+	this.toString = async function() {
+		return this.buf.toString('utf-8', 0, this.end);
 	};
 }
