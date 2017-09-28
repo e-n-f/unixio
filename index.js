@@ -27,3 +27,22 @@ exports.seek = function(fd, off, whence) {
 	});
 }
 
+exports.Fdio = function(fd) {
+	this.fd = fd;
+
+	this.close = async function() {
+		return await exports.close(this.fd);
+	}
+
+	this.read = async function(buf, off, len) {
+		return await exports.read(this.fd, buf, off, len);
+	}
+
+	this.write = async function(buf, off, len) {
+		return await exports.write(this.fd, buf, off, len);
+	}
+
+	this.seek = async function(off, whence) {
+		return await exports.seek(this.fd, off, whence);
+	}
+}
