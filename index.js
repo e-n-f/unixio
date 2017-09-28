@@ -29,7 +29,7 @@ exports.seek = function(fd, off, whence) {
 			}
 		})
 	});
-}
+};
 
 exports.Fdio = function(fd) {
 	this.fd = fd;
@@ -124,4 +124,104 @@ exports.Memio = function(b) {
 	this.toString = async function() {
 		return this.buf.toString('utf-8', 0, this.end);
 	};
-}
+};
+
+exports.File = function(stream) {
+	this.stream = stream;
+
+	this.readbuf = null;
+	this.readhead = 0;
+	this.readtail = 0;
+
+	this.writebuf = null;
+	this.writehead = 0;
+	this.writetail = 0;
+
+	this.ungot = null;
+	this.eof = 0;
+
+	this.read = async function(buffer, off, len) {
+		let n = 0;
+
+		while (n < len) {
+			let b = await this.getb();
+			if (b == this.EOF) {
+				break;
+			}
+
+			buffer[off++] = b;
+			n++;
+		}
+
+		return n;
+	};
+
+	this.write = async function(buffer, off, len) {
+		for (let i = 0; i < len; i++) {
+			await this.putb(buffer[off + i]);
+		}
+		return len;
+	};
+
+	this.getb = async function() {
+		if (this.ungot != null) {
+			let b = this.ungot.b;
+			this.ungot = this.ungot.next;
+			return b;
+		}
+
+		if (this.eof) {
+			return exports.EOF;
+		}
+
+		if (this.readbuf == null) {
+			this.readbuf = Buffer.alloc(1000);
+		}
+
+		if (this.readhead >= this.readtail) {
+			this.readhead = 0;
+			this.readtail = await this.stream.read(this.readbuf, 0, this.readbuf.length);
+		}
+
+		if (this.readhead >= this.readtail) {
+			this.eof = true;
+			return exports.EOF;
+		}
+	};
+
+	this.unget = async function(b) {
+		if (b >= 0) {
+			this.ungot = { b: b, next: this.ungot };
+		}
+
+		return unixio.EOF;
+	};
+
+	this.putb = async function(b) {
+		if (this.writebuf == null) {
+			this.writebuf = Buffer.alloc(1000);
+		}
+
+		if (this.writetail >= this.writebuf.length) {
+			while (this.writehead < this.writetail) {
+				this.writehead += await this.stream.write(this.writebuf, this.writehead, this.writetail - this.writehead);
+			}
+
+			this.writehead = 0;
+			this.writetail = 0;
+		}
+
+		this.writebuf[this.writetail++] = b;
+	};
+
+	this.flush = async function() {
+		if (this.writebuf != null) {
+			while (this.writehead < this.writetail) {
+				this.writehead += await this.stream.write(this.writebuf, this.writehead, this.writetail - this.writehead);
+			}
+
+			this.writehead = 0;
+			this.writetail = 0;
+		}
+	};
+};

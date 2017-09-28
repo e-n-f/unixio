@@ -64,6 +64,9 @@ Buffered I/O
 Creates an I/O buffer for reads and writes to the specified stream (file descriptor, abstract, or memory).
 Adds convenience functions for reading and writing text to and from the specified stream.
 
+Note that there is a global reference to all Files that have not been closed, so that they can be flushed
+if necessary as the process is exiting.
+
 ## try { fp = unixio.fopen(name, mode); }
 
 Opens a file for buffered character I/O in the manner of `fopen`.
