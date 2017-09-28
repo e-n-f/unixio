@@ -57,64 +57,64 @@ Memory I/O
 Character I/O
 =============
 
-## cio = new unixio.Cio(stream);
+## fp = new unixio.File(stream);
 
 Creates an I/O buffer for reads and writes to the specified stream (file descriptor, abstract, or memory).
 Adds convenience functions for reading and writing text to and from the specified stream.
 
-## try { cio = unixio.fopen(name, mode); }
+## try { fp = unixio.fopen(name, mode); }
 
 Opens a file for buffered character I/O in the manner of `fopen`.
 
-## try { n = await cio.read(buffer, off, len); }
+## try { n = await fp.read(buffer, off, len); }
 
-## try { n = await cio.write(buffer, off, len); }
+## try { n = await fp.write(buffer, off, len); }
 
-## try { n = await cio.seek(off, whence); }
+## try { n = await fp.seek(off, whence); }
 
-## try { n = await cio.flush(); }
+## try { n = await fp.flush(); }
 
-## try { n = await cio.close(); }
+## try { n = await fp.close(); }
 
-## try { n = await cio.ungetb(b); }
+## try { n = await fp.ungetb(b); }
 
 Puts a byte back into the buffer for the next `read`.
 
-## try { b = await cio.getb(); }
+## try { b = await fp.getb(); }
 
 Reads one byte from the stream, or returns unixio.EOF;
 
-## try { b = await cio.putb(b); }
+## try { b = await fp.putb(b); }
 
 Writes one byte to the stream.
 
-## try { n = await cio.ungetc(c); }
+## try { n = await fp.ungetc(c); }
 
 Puts a UTF-16 character back into the buffer for the next `read`.
 
-## try { c = await cio.getc(); }
+## try { c = await fp.getc(); }
 
 Reads one UTF-16 character from the stream, or returns unixio.EOF;
 
-## try { c = await cio.putc(c); }
+## try { c = await fp.putc(c); }
 
 Writes one UTF-16 character to the stream.
 
-## try { s = await cio.gets(); }
+## try { s = await fp.gets(); }
 
 Reads one `\n`-terminated line from the stream and returns it as a string, or `null` for EOF.
 For symmetry with `puts`, the `\n` is returned as part of the string.
 
-## try { n = await cio.puts(s); }
+## try { n = await fp.puts(s); }
 
 Writes the specified string to the stream.
 
-## try { s = await cio.getj(); }
+## try { s = await fp.getj(); }
 
 Reads one JSON token from the stream and returns it as a string, or `null` for EOF.
 Note that strings are returned with their quotation marks in place.
 
-## try { b = await cio.printf(format, …); }
+## try { b = await fp.printf(format, …); }
 
 Writes formatted text in the manner of `printf`.
 
@@ -129,6 +129,6 @@ Constants
  * unixio.SEEK_SET
  * unixio.SEEK_CUR
  * unixio.SEEK_END
- * unixio.stdin = new unixio.Cio(new unixio.Fdio(0));
- * unixio.stdout = new unixio.Cio(new unixio.Fdio(1));
- * unixio.stderr = new unixio.Cio(new unixio.Fdio(2));
+ * unixio.stdin = new unixio.File(new unixio.Fdio(0));
+ * unixio.stdout = new unixio.File(new unixio.Fdio(1));
+ * unixio.stderr = new unixio.File(new unixio.Fdio(2));
