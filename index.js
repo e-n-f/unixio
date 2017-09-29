@@ -277,6 +277,10 @@ exports.File = function(stream) {
 	};
 
 	this.getc = async function() {
+		if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
+			return this.readbuf[this.readhead++];
+		}
+
 		let b = await this.getb();
 
 		if (b < 0x80) {
@@ -377,6 +381,11 @@ exports.File = function(stream) {
 			}
 
 			// Now write the reconstructed surrogate as UTF-8
+		}
+
+		if (this.writebuf != null && this.buffered > 0 && this.writetail < this.writebuf.length && c < 0x80 && c > 10) {
+			this.writebuf[this.writetail++] = c;
+			return c;
 		}
 
 		if (c <= 0x7F) {
