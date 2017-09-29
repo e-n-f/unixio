@@ -346,8 +346,19 @@ exports.File = function(stream) {
 	this.gets = async function() {
 		let ret = "";
 
-		let c;
-		while ((c = await this.getc()) != exports.EOF) {
+		while (true) {
+			let c;
+
+			if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
+				c = this.readbuf[this.readhead++];
+			} else {
+				c = await this.getc();
+			}
+
+			if (c == exports.EOF) {
+				break;
+			}
+
 			ret += String.fromCharCode(c);
 
 			if (c == 10) {
@@ -416,7 +427,13 @@ exports.File = function(stream) {
 	this.puts = async function(s) {
 		let i;
 		for (i = 0; i < s.length; i++) {
-			await this.putc(s.charCodeAt(i));
+			let c = s.charCodeAt(i);
+
+			if (this.surrogate < 0 && this.writebuf != null && this.buffered > 0 && this.writetail < this.writebuf.length && c < 0x80 && c > 10) {
+				this.writebuf[this.writetail++] = c;
+			} else {
+				await this.putc(c);
+			}
 		}
 	};
 
