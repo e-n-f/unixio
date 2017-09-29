@@ -253,6 +253,52 @@ exports.File = function(stream) {
 
 		return await this.stream.close();
 	};
+
+	this.getc = async function() {
+		let b = await this.getb();
+
+		if (b < 0x80) {
+			return b;
+		} else if ((b & 0xE0) == 0xC0) {
+			let c = (b & 0x1F) << 6;
+			b = await this.getb();
+			if ((b & 0xC0) == 0x80) {
+				c |= (b & 0x3F);
+				return c;
+			}
+		} else if ((b & 0xF0) == 0xE0) {
+			let c = (b & 0x0F) << 12;
+			b = await this.getb();
+			if ((b & 0xC0) == 0x80) {
+				c |= (b & 0x3F) << 6;
+				b = await this.getb();
+				if ((b & 0xC0) == 0x80) {
+					c |= (b & 0x3F);
+					return c;
+				}
+			}
+		} else if ((b & 0xF8) == 0xF0) {
+			let c = (b & 0x07) << 18;
+			b = await this.getb();
+			if ((b & 0xC0) == 0x80) {
+				c |= (b & 0x3F) << 12;
+				b = await this.getb();
+				if ((b & 0xC0) == 0x80) {
+					c |= (b & 0x3F) << 6;
+					b = await this.getb();
+					if ((b & 0xC0) == 0x80) {
+						c |= (b & 0x3F);
+						return c; // XXX surrogate pairs
+					}
+				}
+			}
+		}
+
+		let e = new Error();
+		e.errno = 92; // XXX MacOS-specific?
+		e.code = "EILSEQ";
+		throw(e);
+	};
 };
 
 exports.opened = [];
