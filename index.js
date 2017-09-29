@@ -323,10 +323,7 @@ exports.File = function(stream) {
 			}
 		}
 
-		let e = new Error();
-		e.errno = 92; // XXX MacOS-specific?
-		e.code = "EILSEQ";
-		throw(e);
+		await this.ilseq();
 	};
 
 	this.ungetc = async function(c) {
@@ -412,6 +409,180 @@ exports.File = function(stream) {
 		for (i = 0; i < s.length; i++) {
 			await this.putc(s.charCodeAt(i));
 		}
+	};
+
+	this.peekc = async function() {
+		let c = await this.getc();
+		await this.ungetc(c);
+		return c;
+	};
+
+	this.peekb = async function() {
+		let b = await this.getb();
+		await this.ungetb(b);
+		return b;
+	};
+
+	this.ilseq = async function() {
+		let e = new Error();
+		e.errno = 92; // XXX MacOS-specific?
+		e.code = "EILSEQ";
+		throw(e);
+	}
+
+	this.getj = async function() {
+		let c;
+
+		while (true) {
+			c = await this.getc();
+
+			// Ignorable whitespace
+			if (c == 0x20 || c == 0x0A || c == 0x0D || c == 0x09 || c == 0x1E || c == 0xFEFF) {
+				continue;
+			}
+
+			if (c == exports.EOF) {
+				return null;
+			}
+
+			break;
+		}
+
+		if (c == 0x5B) {
+			return "[";
+		}
+		if (c == 0x5D) {
+			return "]";
+		}
+		if (c == 0x7B) {
+			return "{";
+		}
+		if (c == 0x7D) {
+			return "}";
+		}
+		if (c == 0x2C) {
+			return ",";
+		}
+		if (c == 0x3A) {
+			return ":";
+		}
+
+		// Barewords (null, true, false)
+		if ((c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A)) {
+			let word = String.fromCharCode(c);
+
+			while (true) {
+				c = await this.getc();
+				if ((c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A)) {
+					word += String.fromCharCode(c);
+				} else {
+					await this.ungetc(c);
+					break;
+				}
+			}
+
+			return word;
+		}
+
+		// Strings
+		if (c == 0x22) {
+			let str = "\"";
+
+			while ((c = await this.getc()) != exports.EOF) {
+				if (c == 0x22) {
+					str += "\"";
+					break;
+				} else if (c == 0x5C) {
+					c = await this.getc();
+
+					if (c == 0x22 || c == 0x5C || c == 0x2F || c == 0x62 ||
+					    c == 0x66 || c == 0x6E || c == 0x72 || c == 0x74) {
+						str += "\"" + String.fromCharCode(c);
+					} else if (c == 0x75) {
+						str += "\\u";
+
+						let i;
+						for (i = 0; i < 4; i++) {
+							c = await this.getc();
+
+							if ((c >= 0x30 && c <= 39) || (c >= 0x41 && c <= 0x46) || (c >= 0x61 && c <= 0x66)) {
+								str += String.fromCharCode(c);
+							} else {
+								await this.ilseq();
+							}
+						}
+					} else {
+						await this.ilseq();
+					}
+				} else if (c < 0x20) {
+					await this.ilseq();
+				} else {
+					str += String.fromCharCode(c);
+				}
+			}
+
+			return str;
+		}
+
+		// Numbers
+		if ((c >= 0x30 && c <= 0x39) || c == 0x2D) { // digits, minus
+			let str = "";
+
+			if (c == 0x2D) {
+				str += "-";
+				c = await this.getc();
+			}
+
+			if (c == 0x30) {
+				str += "0";
+			} else if (c >= 0x31 && c <= 0x39) { // 1 through 9
+				str += String.fromCharCode(c);
+				c = await this.peekc();
+
+				while (c >= 0x30 && c <= 0x39) {
+					str += String.fromCharCode(await this.getc());
+					c = await this.peekc();
+				}
+			}
+
+			if ((await this.peekc()) == 0x2E) { // .
+				await this.getc();
+				str += ".";
+
+				c = await this.peekc();
+				if (c < 0x30 || c > 0x39) {
+					await this.ilseq();
+				}
+
+				while (c >= 0x30 && c <= 0x39) {
+					str += String.fromCharCode(await this.getc());
+					c = await this.peekc();
+				}
+			}
+
+			c = await this.peekc();
+			if (c == 0x45 || c == 0x65) { // E
+				str += String.fromCharCode(await this.getc());
+				c = await this.peekc();
+
+				if (c == 0x2B || c == 0x2D) { // +, -
+					str += String.fromCharCode(await this.getc());
+				}
+
+				c = await this.peekc();
+				if (c < 0x30 || c > 0x39) {
+					await this.ilseq();
+				}
+				while (c >= 0x30 && c <= 0x39) {
+					str += String.fromCharCode(await this.getc());
+					c = await this.peekc();
+				}
+			}
+
+			return str;
+		}
+
+		await this.ilseq();
 	};
 };
 
