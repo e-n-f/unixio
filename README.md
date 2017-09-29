@@ -131,9 +131,9 @@ Constants
 =========
 
  * unixio.EOF = -1
- * unixio.SEEK_SET
- * unixio.SEEK_CUR
- * unixio.SEEK_END
+ * unixio.SEEK_SET = 0
+ * unixio.SEEK_CUR = 1
+ * unixio.SEEK_END = 2
  * unixio.stdin = new unixio.File(new unixio.Fdio(0));
  * unixio.stdout = new unixio.File(new unixio.Fdio(1));
  * unixio.stderr = new unixio.File(new unixio.Fdio(2));

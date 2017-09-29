@@ -219,13 +219,6 @@ exports.File = function(stream) {
 	};
 
 	this.flush = async function() {
-		if (this.surrogate >= 0) {
-			await this.putb(0xE0 | (this.surrogate >> 12));
-			await this.putb(0x80 | ((this.surrogate >> 6) & 0x3F));
-			await this.putb(0x80 | (this.surrogate & 0x3F));
-			this.surrogate = -1;
-		}
-
 		if (this.writebuf != null) {
 			while (this.writehead < this.writetail) {
 				this.writehead += await this.stream.write(this.writebuf, this.writehead, this.writetail - this.writehead);
@@ -233,6 +226,15 @@ exports.File = function(stream) {
 
 			this.writehead = 0;
 			this.writetail = 0;
+		}
+
+		if (this.surrogate >= 0) {
+			await this.putb(0xE0 | (this.surrogate >> 12));
+			await this.putb(0x80 | ((this.surrogate >> 6) & 0x3F));
+			await this.putb(0x80 | (this.surrogate & 0x3F));
+			this.surrogate = -1;
+
+			await this.flush();
 		}
 
 		return 0;
@@ -246,7 +248,7 @@ exports.File = function(stream) {
 		this.readhead = 0;
 		this.readtail = 0;
 		this.eof = false;
-		this.surrogate = -1;
+		this.ungot = null;
 
 		return await this.stream.seek(off, whence);
 	};
