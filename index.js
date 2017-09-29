@@ -148,7 +148,7 @@ exports.File = function(stream) {
 
 		while (n < len) {
 			let b = await this.getb();
-			if (b == this.EOF) {
+			if (b == exports.EOF) {
 				break;
 			}
 
@@ -198,9 +198,10 @@ exports.File = function(stream) {
 	this.ungetb = async function(b) {
 		if (b >= 0) {
 			this.ungot = { b: b, next: this.ungot };
+			return b;
 		}
 
-		return unixio.EOF;
+		return exports.EOF;
 	};
 
 	this.putb = async function(b) {
@@ -288,7 +289,14 @@ exports.File = function(stream) {
 					b = await this.getb();
 					if ((b & 0xC0) == 0x80) {
 						c |= (b & 0x3F);
-						return c; // XXX surrogate pairs
+
+						// UTF-16 surrogate pair
+						c -= 0x010000;
+						let c1 = (c >> 10) + 0xD800;
+						let c2 = (c & ((1 << 10) - 1)) + 0xDC00;
+
+						await this.ungetc(c2);
+						return c1;
 					}
 				}
 			}
@@ -298,6 +306,19 @@ exports.File = function(stream) {
 		e.errno = 92; // XXX MacOS-specific?
 		e.code = "EILSEQ";
 		throw(e);
+	};
+
+	this.ungetc = async function(c) {
+		if (c <= 0x7F) {
+			await this.ungetb(c);
+		} else if (c <= 0x7FF) {
+			await this.ungetb(0x80 | (c & 0x3F));
+			await this.ungetb(0xC0 | (c >> 6));
+		} else {
+			await this.ungetb(0x80 | (c & 0x3F));
+			await this.ungetb(0x80 | ((c >> 6) & 0x3F));
+			await this.ungetb(0xE0 | (c >> 12));
+		}
 	};
 };
 
