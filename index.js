@@ -139,7 +139,8 @@ exports.File = function(stream) {
 	this.writetail = 0;
 
 	this.ungot = null;
-	this.eof = 0;
+	this.surrogate = -1;
+	this.eof = false;
 
 	exports.opened.push(this);
 
@@ -218,6 +219,13 @@ exports.File = function(stream) {
 	};
 
 	this.flush = async function() {
+		if (this.surrogate >= 0) {
+			await this.putb(0xE0 | (this.surrogate >> 12));
+			await this.putb(0x80 | ((this.surrogate >> 6) & 0x3F));
+			await this.putb(0x80 | (this.surrogate & 0x3F));
+			this.surrogate = -1;
+		}
+
 		if (this.writebuf != null) {
 			while (this.writehead < this.writetail) {
 				this.writehead += await this.stream.write(this.writebuf, this.writehead, this.writetail - this.writehead);
@@ -235,7 +243,11 @@ exports.File = function(stream) {
 			await this.flush();
 		}
 
+		this.readhead = 0;
+		this.readtail = 0;
 		this.eof = false;
+		this.surrogate = -1;
+
 		return await this.stream.seek(off, whence);
 	};
 
@@ -318,6 +330,78 @@ exports.File = function(stream) {
 			await this.ungetb(0x80 | (c & 0x3F));
 			await this.ungetb(0x80 | ((c >> 6) & 0x3F));
 			await this.ungetb(0xE0 | (c >> 12));
+		}
+	};
+
+	this.gets = async function() {
+		let ret = "";
+
+		let c;
+		while ((c = await this.getc()) != exports.EOF) {
+			ret += String.fromCharCode(c);
+
+			if (c == 10) {
+				break;
+			}
+		}
+
+		if (ret.length == 0) {
+			return null;
+		} else {
+			return ret;
+		}
+	};
+
+	this.putc = async function(c) {
+		if (this.surrogate >= 0) {
+			if (c >= 0xDC00 && c <= 0xDFFFF) {
+				let c1 = this.surrogate - 0xD800;
+				let c2 = c - 0xDC00;
+				this.surrogate = -1;
+				c = ((c1 << 10) | c2) + 0x010000;
+			} else {
+				// Invalid second char of surrogate,
+				// so write first char literally,
+				// followed by whatever we were given
+
+				await this.putb(0xE0 | (this.surrogate >> 12));
+				await this.putb(0x80 | ((this.surrogate >> 6) & 0x3F));
+				await this.putb(0x80 | (this.surrogate & 0x3F));
+				this.surrogate = -1;
+			}
+
+			// Now write the reconstructed surrogate as UTF-8
+		}
+
+		if (c >= 0xD800 && c <= 0xDBFF) {
+			// First char of UTF-16 surrogate pair
+			this.surrogate = c;
+			return c;
+		}
+
+		if (c <= 0x7F) {
+			await this.putb(c);
+		} else if (c <= 0x7FF) {
+			await this.putb(0xC0 | (c >> 6));
+			await this.putb(0x80 | (c & 0x3F));
+		} else if (c <= 0xFFFF) {
+			await this.putb(0xE0 | (c >> 12));
+			await this.putb(0x80 | ((c >> 6) & 0x3F));
+			await this.putb(0x80 | (c & 0x3F));
+		} else {
+			await this.putb(0xF0 | (c >> 18));
+			await this.putb(0x80 | ((c >> 12) & 0x3F));
+			await this.putb(0x80 | ((c >> 6) & 0x3F));
+			await this.putb(0x80 | (c & 0x3F));
+		}
+
+		return c;
+	};
+
+	this.puts = async function(s) {
+		let i;
+		for (i = 0; i < s.length; i++) {
+			await this.putc(s.charCodeAt(i));
 		}
 	};
 };
