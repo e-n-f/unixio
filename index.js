@@ -67,7 +67,7 @@ exports.Memio = function(b) {
 	}
 
 	this.close = async function() {
-
+		return 0;
 	};
 
 	this.read = async function(buf, off, len) {
@@ -89,6 +89,7 @@ exports.Memio = function(b) {
 		if (this.fpos > this.end) {
 			this.end = this.fpos;
 		}
+		return len;
 	};
 
 	this.seek = async function(off, whence) {
@@ -110,7 +111,7 @@ exports.Memio = function(b) {
 	};
 
 	this.flush = async function() {
-
+		return 0;
 	};
 
 	this.buffer = async function() {
@@ -140,6 +141,8 @@ exports.File = function(stream) {
 	this.ungot = null;
 	this.eof = 0;
 
+	exports.opened.push(this);
+
 	this.read = async function(buffer, off, len) {
 		let n = 0;
 
@@ -160,6 +163,7 @@ exports.File = function(stream) {
 		for (let i = 0; i < len; i++) {
 			await this.putb(buffer[off + i]);
 		}
+
 		return len;
 	};
 
@@ -187,9 +191,11 @@ exports.File = function(stream) {
 			this.eof = true;
 			return exports.EOF;
 		}
+
+		return this.readbuf[this.readhead++];
 	};
 
-	this.unget = async function(b) {
+	this.ungetb = async function(b) {
 		if (b >= 0) {
 			this.ungot = { b: b, next: this.ungot };
 		}
@@ -203,15 +209,11 @@ exports.File = function(stream) {
 		}
 
 		if (this.writetail >= this.writebuf.length) {
-			while (this.writehead < this.writetail) {
-				this.writehead += await this.stream.write(this.writebuf, this.writehead, this.writetail - this.writehead);
-			}
-
-			this.writehead = 0;
-			this.writetail = 0;
+			await this.flush();
 		}
 
 		this.writebuf[this.writetail++] = b;
+		return b;
 	};
 
 	this.flush = async function() {
@@ -223,5 +225,46 @@ exports.File = function(stream) {
 			this.writehead = 0;
 			this.writetail = 0;
 		}
+
+		return 0;
+	};
+
+	this.seek = async function(off, whence) {
+		if (this.writebuf != null) {
+			await this.flush();
+		}
+
+		this.eof = false;
+		return await this.stream.seek(off, whence);
+	};
+
+	this.close = async function() {
+		if (this.writebuf != null) {
+			await this.flush();
+		}
+
+		let i;
+		for (i = 0; i < exports.opened.length; i++) {
+			if (exports.opened[i] == this) {
+				break;
+			}
+		}
+		exports.opened.splice(i, 1);
+
+		return await this.stream.close();
 	};
 };
+
+exports.opened = [];
+
+exports.cleanup = async function() {
+	while (exports.opened.length > 0) {
+		await exports.opened[0].close();
+	}
+}
+
+process.on('beforeExit', exports.cleanup);
+
+exports.stdin = new exports.File(new exports.Fdio(0));
+exports.stdout = new exports.File(new exports.Fdio(1));
+exports.stderr = new exports.File(new exports.Fdio(2));
