@@ -2,6 +2,7 @@
 
 const fsext = require('fs-ext');
 const fsextra = require('fs-extra');
+const tty = require('tty');
 
 exports.EOF = -1
 exports.SEEK_SET = 0;
@@ -141,6 +142,7 @@ exports.File = function(stream) {
 	this.ungot = null;
 	this.surrogate = -1;
 	this.eof = false;
+	this.buffered = 2;
 
 	exports.opened.push(this);
 
@@ -215,6 +217,11 @@ exports.File = function(stream) {
 		}
 
 		this.writebuf[this.writetail++] = b;
+
+		if (this.buffered == 0 || (b == 10 && this.buffered == 1)) {
+			await this.flush();
+		}
+
 		return b;
 	};
 
@@ -421,3 +428,9 @@ process.on('beforeExit', exports.cleanup);
 exports.stdin = new exports.File(new exports.Fdio(0));
 exports.stdout = new exports.File(new exports.Fdio(1));
 exports.stderr = new exports.File(new exports.Fdio(2));
+
+exports.stderr.buffered = 0;
+
+if (tty.isatty(1)) {
+	exports.stdout.buffered = 1;
+}
