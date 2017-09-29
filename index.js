@@ -460,7 +460,11 @@ exports.File = function(stream) {
 		let c;
 
 		while (true) {
-			c = await this.getc();
+			if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
+				c = this.readbuf[this.readhead++];
+			} else {
+				c = await this.getc();
+			}
 
 			// Ignorable whitespace
 			if (c == 0x20 || c == 0x0A || c == 0x0D || c == 0x09 || c == 0x1E || c == 0xFEFF) {
@@ -498,7 +502,12 @@ exports.File = function(stream) {
 			let word = String.fromCharCode(c);
 
 			while (true) {
-				c = await this.getc();
+				if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
+					c = this.readbuf[this.readhead++];
+				} else {
+					c = await this.getc();
+				}
+
 				if ((c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A)) {
 					word += String.fromCharCode(c);
 				} else {
@@ -514,7 +523,17 @@ exports.File = function(stream) {
 		if (c == 0x22) {
 			let str = "\"";
 
-			while ((c = await this.getc()) != exports.EOF) {
+			while (true) {
+				if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
+					c = this.readbuf[this.readhead++];
+				} else {
+					c = await this.getc();
+				}
+
+				if (c == exports.EOF) {
+					break;
+				}
+
 				if (c == 0x22) {
 					str += "\"";
 					break;
