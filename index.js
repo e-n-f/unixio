@@ -379,18 +379,18 @@ exports.File = function(stream) {
 			// Now write the reconstructed surrogate as UTF-8
 		}
 
-		if (c >= 0xD800 && c <= 0xDBFF) {
-			// First char of UTF-16 surrogate pair
-			this.surrogate = c;
-			return c;
-		}
-
 		if (c <= 0x7F) {
 			await this.putb(c);
 		} else if (c <= 0x7FF) {
 			await this.putb(0xC0 | (c >> 6));
 			await this.putb(0x80 | (c & 0x3F));
 		} else if (c <= 0xFFFF) {
+			if (c >= 0xD800 && c <= 0xDBFF) {
+				// First char of UTF-16 surrogate pair
+				this.surrogate = c;
+				return c;
+			}
+
 			await this.putb(0xE0 | (c >> 12));
 			await this.putb(0x80 | ((c >> 6) & 0x3F));
 			await this.putb(0x80 | (c & 0x3F));
