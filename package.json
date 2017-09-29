@@ -1,0 +1,27 @@
+{
+  "name": "unixio",
+  "version": "0.1.0",
+  "description": "File I/O in the sprit of C",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/ericfischer/unixio"
+  },
+  "keywords": [
+    "unix",
+    "stdio"
+  ],
+  "dependencies": {
+    "fs-ext": "1.0.0",
+    "fs-extra": "4.0.2"
+  },
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "author": "Eric Fischer",
+  "license": "BSD-2-Clause"
+}
