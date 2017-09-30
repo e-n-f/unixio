@@ -198,6 +198,23 @@ exports.File = function(stream) {
 		return this.readbuf[this.readhead++];
 	};
 
+	this.try_getb = function() {
+		if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
+			return this.readbuf[this.readhead++];
+		}
+
+		return -1;
+	}
+
+	this.try_putb = function(b) {
+		if (this.surrogate < 0 && this.writebuf != null && this.buffered > 0 && this.writetail < this.writebuf.length && b < 0x80 && b > 0x0A) {
+			this.writebuf[this.writetail++] = b;
+			return 0;
+		} else {
+			return -1;
+		}
+	}
+
 	this.ungetb = async function(b) {
 		if (b >= 0) {
 			this.ungot = { b: b, next: this.ungot };
@@ -277,11 +294,10 @@ exports.File = function(stream) {
 	};
 
 	this.getc = async function() {
-		if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
-			return this.readbuf[this.readhead++];
+		let b = this.try_getb();
+		if (b == -1) {
+			b = await this.getb();
 		}
-
-		let b = await this.getb();
 
 		if (b < 0x80) {
 			return b;
@@ -347,11 +363,8 @@ exports.File = function(stream) {
 		let ret = "";
 
 		while (true) {
-			let c;
-
-			if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
-				c = this.readbuf[this.readhead++];
-			} else {
+			let c = this.try_getb();
+			if (c == -1) {
 				c = await this.getc();
 			}
 
@@ -374,6 +387,10 @@ exports.File = function(stream) {
 	};
 
 	this.putc = async function(c) {
+		if (this.try_putb(c) != -1) {
+			return;
+		}
+
 		if (this.surrogate >= 0) {
 			if (c >= 0xDC00 && c <= 0xDFFFF) {
 				let c1 = this.surrogate - 0xD800;
@@ -392,11 +409,6 @@ exports.File = function(stream) {
 			}
 
 			// Now write the reconstructed surrogate as UTF-8
-		}
-
-		if (this.writebuf != null && this.buffered > 0 && this.writetail < this.writebuf.length && c < 0x80 && c > 10) {
-			this.writebuf[this.writetail++] = c;
-			return c;
 		}
 
 		if (c <= 0x7F) {
@@ -429,9 +441,7 @@ exports.File = function(stream) {
 		for (i = 0; i < s.length; i++) {
 			let c = s.charCodeAt(i);
 
-			if (this.surrogate < 0 && this.writebuf != null && this.buffered > 0 && this.writetail < this.writebuf.length && c < 0x80 && c > 10) {
-				this.writebuf[this.writetail++] = c;
-			} else {
+			if (this.try_putb(c) == -1) {
 				await this.putc(c);
 			}
 		}
@@ -460,9 +470,8 @@ exports.File = function(stream) {
 		let c;
 
 		while (true) {
-			if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
-				c = this.readbuf[this.readhead++];
-			} else {
+			c = this.try_getb();
+			if (c == -1) {
 				c = await this.getc();
 			}
 
@@ -502,9 +511,8 @@ exports.File = function(stream) {
 			let word = String.fromCharCode(c);
 
 			while (true) {
-				if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
-					c = this.readbuf[this.readhead++];
-				} else {
+				c = this.try_getb();
+				if (c == -1) {
 					c = await this.getc();
 				}
 
@@ -524,9 +532,8 @@ exports.File = function(stream) {
 			let str = "\"";
 
 			while (true) {
-				if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
-					c = this.readbuf[this.readhead++];
-				} else {
+				c = this.try_getb();
+				if (c == -1) {
 					c = await this.getc();
 				}
 
