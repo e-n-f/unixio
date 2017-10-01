@@ -245,13 +245,9 @@ exports.File = function(stream) {
 		return exports.EOF;
 	};
 
-	this.putb = async function(b) {
-		if (this.writebuf == null) {
-			this.writebuf = Buffer.alloc(1000);
-		}
-
+	this.reallyputb = async function(b) {
 		if (this.writetail >= this.writebuf.length) {
-			await this.flush();
+			await this.flush1();
 		}
 
 		this.writebuf[this.writetail++] = b;
@@ -261,6 +257,30 @@ exports.File = function(stream) {
 		}
 
 		return b;
+	};
+
+	this.putb = function(b) {
+		if (this.writebuf == null) {
+			this.writebuf = Buffer.alloc(1000);
+		}
+
+		if ((this.buffered == 2 || (this.buffered == 1 && b != 10)) && this.writetail < this.writebuf.length) {
+			this.writebuf[this.writetail++] = b;
+			return b;
+		}
+
+		return this.reallyputb(b);
+	}
+
+	this.flush1 = async function() {
+		if (this.writebuf != null) {
+			while (this.writehead < this.writetail) {
+				this.writehead += await this.stream.write(this.writebuf, this.writehead, this.writetail - this.writehead);
+			}
+
+			this.writehead = 0;
+			this.writetail = 0;
+		}
 	};
 
 	this.flush = async function() {
