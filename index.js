@@ -449,54 +449,74 @@ exports.File = function(stream) {
 		}
 	};
 
-	this.putc = async function(c) {
-		if (this.try_putb(c) != -1) {
-			return;
+	this.putc = function(c) {
+		if (this.surrogate < 0 && c < 0x80) {
+			// Either the actual byte put, or the Promise to do it
+			return this.putb(c);
 		}
 
-		if (this.surrogate >= 0) {
-			if (c >= 0xDC00 && c <= 0xDFFFF) {
-				let c1 = this.surrogate - 0xD800;
-				let c2 = c - 0xDC00;
-				this.surrogate = -1;
-				c = ((c1 << 10) | c2) + 0x010000;
+		return (async () => {
+			if (this.surrogate >= 0) {
+				if (c >= 0xDC00 && c <= 0xDFFFF) {
+					let c1 = this.surrogate - 0xD800;
+					let c2 = c - 0xDC00;
+					this.surrogate = -1;
+					c = ((c1 << 10) | c2) + 0x010000;
+				} else {
+					// Invalid second char of surrogate,
+					// so write first char literally,
+					// followed by whatever we were given
+
+					await this.putb(0xE0 | (this.surrogate >> 12));
+					await this.putb(0x80 | ((this.surrogate >> 6) & 0x3F));
+					await this.putb(0x80 | (this.surrogate & 0x3F));
+					this.surrogate = -1;
+				}
+
+				// Now write the reconstructed surrogate as UTF-8
+			}
+
+			let t;
+			if (c <= 0x7F) {
+				t = this.putb(c);
+				t = t instanceof Promise ? await t : t;
+			} else if (c <= 0x7FF) {
+				t = this.putb(0xC0 | (c >> 6));
+				t = t instanceof Promise ? await t : t;
+
+				t = this.putb(0x80 | (c & 0x3F));
+				t = t instanceof Promise ? await t : t;
+			} else if (c <= 0xFFFF) {
+				if (c >= 0xD800 && c <= 0xDBFF) {
+					// First char of UTF-16 surrogate pair
+					this.surrogate = c;
+					return c;
+				}
+
+				t = this.putb(0xE0 | (c >> 12));
+				t = t instanceof Promise ? await t : t;
+
+				t = this.putb(0x80 | ((c >> 6) & 0x3F));
+				t = t instanceof Promise ? await t : t;
+
+				t = this.putb(0x80 | (c & 0x3F));
+				t = t instanceof Promise ? await t : t;
 			} else {
-				// Invalid second char of surrogate,
-				// so write first char literally,
-				// followed by whatever we were given
+				t = this.putb(0xF0 | (c >> 18));
+				t = t instanceof Promise ? await t : t;
 
-				await this.putb(0xE0 | (this.surrogate >> 12));
-				await this.putb(0x80 | ((this.surrogate >> 6) & 0x3F));
-				await this.putb(0x80 | (this.surrogate & 0x3F));
-				this.surrogate = -1;
+				t = this.putb(0x80 | ((c >> 12) & 0x3F));
+				t = t instanceof Promise ? await t : t;
+
+				t = this.putb(0x80 | ((c >> 6) & 0x3F));
+				t = t instanceof Promise ? await t : t;
+
+				t = this.putb(0x80 | (c & 0x3F));
+				t = t instanceof Promise ? await t : t;
 			}
 
-			// Now write the reconstructed surrogate as UTF-8
-		}
-
-		if (c <= 0x7F) {
-			await this.putb(c);
-		} else if (c <= 0x7FF) {
-			await this.putb(0xC0 | (c >> 6));
-			await this.putb(0x80 | (c & 0x3F));
-		} else if (c <= 0xFFFF) {
-			if (c >= 0xD800 && c <= 0xDBFF) {
-				// First char of UTF-16 surrogate pair
-				this.surrogate = c;
-				return c;
-			}
-
-			await this.putb(0xE0 | (c >> 12));
-			await this.putb(0x80 | ((c >> 6) & 0x3F));
-			await this.putb(0x80 | (c & 0x3F));
-		} else {
-			await this.putb(0xF0 | (c >> 18));
-			await this.putb(0x80 | ((c >> 12) & 0x3F));
-			await this.putb(0x80 | ((c >> 6) & 0x3F));
-			await this.putb(0x80 | (c & 0x3F));
-		}
-
-		return c;
+			return c;
+		})();
 	};
 
 	this.puts = async function(s) {
