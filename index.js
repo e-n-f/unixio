@@ -182,41 +182,29 @@ exports.File = function(stream) {
 		}
 
 		if (this.readbuf == null) {
-			this.readbuf = Buffer.alloc(1000);
+			this.readbuf = Buffer.alloc(5000);
 		}
 
 		if (this.readhead < this.readtail) {
 			return this.readbuf[this.readhead++];
 		}
 
-		let r = this.stream.read(this.readbuf, 0, this.readbuf.length);
-		if (typeof r.then === 'function') {
-			return new Promise((resolve, reject) => {
-				r.then((r2) => {
-					this.readhead = 0;
-					this.readtail = r2;
+		return (async () => {
+			let r = this.stream.read(this.readbuf, 0, this.readbuf.length);
+			if (typeof r.then === 'function') {
+				r = await r;
+			}
 
-					if (this.readhead >= this.readtail) {
-						this.eof = true;
-						resolve(exports.EOF);
-					} else {
-						resolve(this.readbuf[this.readhead++]);
-					}
-				}, (err) => {
-					reject(err);
-				});
-			});
-		}
+			this.readhead = 0;
+			this.readtail = r;
 
-		this.readhead = 0;
-		this.readtail = r;
+			if (this.readhead >= this.readtail) {
+				this.eof = true;
+				return exports.EOF;
+			}
 
-		if (this.readhead >= this.readtail) {
-			this.eof = true;
-			return exports.EOF;
-		}
-
-		return this.readbuf[this.readhead++];
+			return this.readbuf[this.readhead++];
+		})();
 	};
 
 	this.try_getb = function() {
@@ -245,23 +233,9 @@ exports.File = function(stream) {
 		return exports.EOF;
 	};
 
-	this.reallyputb = async function(b) {
-		if (this.writetail >= this.writebuf.length) {
-			await this.flush1();
-		}
-
-		this.writebuf[this.writetail++] = b;
-
-		if (this.buffered == 0 || (b == 10 && this.buffered == 1)) {
-			await this.flush();
-		}
-
-		return b;
-	};
-
 	this.putb = function(b) {
 		if (this.writebuf == null) {
-			this.writebuf = Buffer.alloc(1000);
+			this.writebuf = Buffer.alloc(5000);
 		}
 
 		if ((this.buffered == 2 || (this.buffered == 1 && b != 10)) && this.writetail < this.writebuf.length) {
@@ -269,7 +243,19 @@ exports.File = function(stream) {
 			return b;
 		}
 
-		return this.reallyputb(b);
+		return (async () => {
+			if (this.writetail >= this.writebuf.length) {
+				await this.flush1();
+			}
+
+			this.writebuf[this.writetail++] = b;
+
+			if (this.buffered == 0 || (b == 10 && this.buffered == 1)) {
+				await this.flush();
+			}
+
+			return b;
+		})();
 	}
 
 	this.flush1 = async function() {
