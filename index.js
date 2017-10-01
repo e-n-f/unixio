@@ -167,7 +167,9 @@ exports.File = function(stream) {
 		let n = 0;
 
 		while (n < len) {
-			let b = await this.getb();
+			let b = this.getb();
+			b = b instanceof Promise ? await b : b;
+
 			if (b == exports.EOF) {
 				break;
 			}
@@ -181,7 +183,8 @@ exports.File = function(stream) {
 
 	this.write = async function(buffer, off, len) {
 		for (let i = 0; i < len; i++) {
-			await this.putb(buffer[off + i]);
+			let b = this.putb(buffer[off + i]);
+			b = b instanceof Promise ? await b : b;
 		}
 
 		return len;
@@ -223,23 +226,6 @@ exports.File = function(stream) {
 			return this.readbuf[this.readhead++];
 		})();
 	};
-
-	this.try_getb = function() {
-		if (this.ungot == null && this.readhead < this.readtail && this.readbuf[this.readhead] < 0x80) {
-			return this.readbuf[this.readhead++];
-		}
-
-		return -1;
-	}
-
-	this.try_putb = function(b) {
-		if (this.surrogate < 0 && this.writebuf != null && this.buffered > 0 && this.writetail < this.writebuf.length && b < 0x80 && b > 0x0A) {
-			this.writebuf[this.writetail++] = b;
-			return 0;
-		} else {
-			return -1;
-		}
-	}
 
 	this.ungetb = function(b) {
 		if (b >= 0) {
@@ -426,10 +412,8 @@ exports.File = function(stream) {
 		let ret = "";
 
 		while (true) {
-			let c = this.try_getb();
-			if (c == -1) {
-				c = await this.getc();
-			}
+			let c = this.getc();
+			c = c instanceof Promise ? await c : c;
 
 			if (c == exports.EOF) {
 				break;
@@ -522,11 +506,8 @@ exports.File = function(stream) {
 	this.puts = async function(s) {
 		let i;
 		for (i = 0; i < s.length; i++) {
-			let c = s.charCodeAt(i);
-
-			if (this.try_putb(c) == -1) {
-				await this.putc(c);
-			}
+			let c = this.putc(s.charCodeAt(i));
+			c = c instanceof Promise ? await c : c;
 		}
 	};
 
@@ -534,12 +515,6 @@ exports.File = function(stream) {
 		let c = await this.getc();
 		await this.ungetc(c);
 		return c;
-	};
-
-	this.peekb = async function() {
-		let b = await this.getb();
-		await this.ungetb(b);
-		return b;
 	};
 
 	this.ilseq = async function() {
@@ -553,10 +528,8 @@ exports.File = function(stream) {
 		let c;
 
 		while (true) {
-			c = this.try_getb();
-			if (c == -1) {
-				c = await this.getc();
-			}
+			c = this.getc();
+			c = c instanceof Promise ? await c : c;
 
 			// Ignorable whitespace
 			if (c == 0x20 || c == 0x0A || c == 0x0D || c == 0x09 || c == 0x1E || c == 0xFEFF) {
@@ -594,15 +567,14 @@ exports.File = function(stream) {
 			let word = String.fromCharCode(c);
 
 			while (true) {
-				c = this.try_getb();
-				if (c == -1) {
-					c = await this.getc();
-				}
+				c = this.getc();
+				c = c instanceof Promise ? await c : c;
 
 				if ((c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A)) {
 					word += String.fromCharCode(c);
 				} else {
-					await this.ungetc(c);
+					c = this.ungetc(c);
+					c = c instanceof Promise ? await c : c;
 					break;
 				}
 			}
@@ -615,10 +587,8 @@ exports.File = function(stream) {
 			let str = "\"";
 
 			while (true) {
-				c = this.try_getb();
-				if (c == -1) {
-					c = await this.getc();
-				}
+				c = this.getc();
+				c = c instanceof Promise ? await c : c;
 
 				if (c == exports.EOF) {
 					break;
@@ -628,7 +598,8 @@ exports.File = function(stream) {
 					str += "\"";
 					break;
 				} else if (c == 0x5C) {
-					c = await this.getc();
+					c = this.getc();
+					c = c instanceof Promise ? await c : c;
 
 					if (c == 0x22 || c == 0x5C || c == 0x2F || c == 0x62 ||
 					    c == 0x66 || c == 0x6E || c == 0x72 || c == 0x74) {
@@ -638,7 +609,8 @@ exports.File = function(stream) {
 
 						let i;
 						for (i = 0; i < 4; i++) {
-							c = await this.getc();
+							c = this.getc();
+							c = c instanceof Promise ? await c : c;
 
 							if ((c >= 0x30 && c <= 39) || (c >= 0x41 && c <= 0x46) || (c >= 0x61 && c <= 0x66)) {
 								str += String.fromCharCode(c);
@@ -665,7 +637,8 @@ exports.File = function(stream) {
 
 			if (c == 0x2D) {
 				str += "-";
-				c = await this.getc();
+				c = this.getc();
+				c = c instanceof Promise ? await c : c;
 			}
 
 			if (c == 0x30) {
@@ -675,13 +648,17 @@ exports.File = function(stream) {
 				c = await this.peekc();
 
 				while (c >= 0x30 && c <= 0x39) {
-					str += String.fromCharCode(await this.getc());
+					c = this.getc();
+					c = c instanceof Promise ? await c : c;
+					str += String.fromCharCode(c);
+
 					c = await this.peekc();
 				}
 			}
 
 			if ((await this.peekc()) == 0x2E) { // .
-				await this.getc();
+				c = this.getc();
+				c = c instanceof Promise ? await c : c;
 				str += ".";
 
 				c = await this.peekc();
@@ -690,18 +667,26 @@ exports.File = function(stream) {
 				}
 
 				while (c >= 0x30 && c <= 0x39) {
-					str += String.fromCharCode(await this.getc());
+					c = this.getc();
+					c = c instanceof Promise ? await c : c;
+					str += String.fromCharCode(c);
+
 					c = await this.peekc();
 				}
 			}
 
 			c = await this.peekc();
 			if (c == 0x45 || c == 0x65) { // E
-				str += String.fromCharCode(await this.getc());
+				c = this.getc();
+				c = c instanceof Promise ? await c : c;
+				str += String.fromCharCode(c);
+
 				c = await this.peekc();
 
 				if (c == 0x2B || c == 0x2D) { // +, -
-					str += String.fromCharCode(await this.getc());
+					c = this.getc();
+					c = c instanceof Promise ? await c : c;
+					str += String.fromCharCode(c);
 				}
 
 				c = await this.peekc();
@@ -709,7 +694,10 @@ exports.File = function(stream) {
 					await this.ilseq();
 				}
 				while (c >= 0x30 && c <= 0x39) {
-					str += String.fromCharCode(await this.getc());
+					c = this.getc();
+					c = c instanceof Promise ? await c : c;
+					str += String.fromCharCode(c);
+
 					c = await this.peekc();
 				}
 			}
