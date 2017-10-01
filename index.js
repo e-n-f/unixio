@@ -35,23 +35,23 @@ exports.seek = function(fd, off, whence) {
 exports.Fdio = function(fd) {
 	this.fd = fd;
 
-	this.close = async function() {
-		return await exports.close(this.fd);
+	this.close = function() {
+		return exports.close(this.fd);
 	};
 
-	this.read = async function(buf, off, len) {
-		return await exports.read(this.fd, buf, off, len);
+	this.read = function(buf, off, len) {
+		return exports.read(this.fd, buf, off, len);
 	};
 
-	this.write = async function(buf, off, len) {
-		return await exports.write(this.fd, buf, off, len);
+	this.write = function(buf, off, len) {
+		return exports.write(this.fd, buf, off, len);
 	};
 
-	this.seek = async function(off, whence) {
-		return await exports.seek(this.fd, off, whence);
+	this.seek = function(off, whence) {
+		return exports.seek(this.fd, off, whence);
 	};
 
-	this.flush = async function() {
+	this.flush = function() {
 
 	};
 }
@@ -67,18 +67,18 @@ exports.Memio = function(b) {
 		this.end = b.length;
 	}
 
-	this.close = async function() {
+	this.close = function() {
 		return 0;
 	};
 
-	this.read = async function(buf, off, len) {
+	this.read = function(buf, off, len) {
 		len = Math.min(len, this.end - this.fpos);
 		this.buf.copy(buf, off, this.fpos, this.fpos + len);
 		this.fpos += len;
 		return len;
 	};
 
-	this.write = async function(buf, off, len) {
+	this.write = function(buf, off, len) {
 		if (this.fpos + len > this.buf.length) {
 			let grow = Buffer.alloc(this.fpos + len + 1000);
 			this.buf.copy(grow, 0, 0, this.end);
@@ -93,7 +93,7 @@ exports.Memio = function(b) {
 		return len;
 	};
 
-	this.seek = async function(off, whence) {
+	this.seek = function(off, whence) {
 		if (whence == exports.SEEK_SET && off >= 0) {
 			this.fpos = off;
 			return this.fpos;
@@ -111,19 +111,19 @@ exports.Memio = function(b) {
 		throw(e);
 	};
 
-	this.flush = async function() {
+	this.flush = function() {
 		return 0;
 	};
 
-	this.buffer = async function() {
+	this.buffer = function() {
 		return this.buf;
 	};
 
-	this.length = async function() {
+	this.length = function() {
 		return this.end;
 	};
 
-	this.toString = async function() {
+	this.toString = function() {
 		return this.buf.toString('utf-8', 0, this.end);
 	};
 };
