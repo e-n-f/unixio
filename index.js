@@ -241,7 +241,7 @@ exports.File = function(stream) {
 		}
 	}
 
-	this.ungetb = async function(b) {
+	this.ungetb = function(b) {
 		if (b >= 0) {
 			this.ungot = { b: b, next: this.ungot };
 			return b;
@@ -337,69 +337,88 @@ exports.File = function(stream) {
 		return await this.stream.close();
 	};
 
-	this.getc = async function() {
-		let b = this.try_getb();
-		if (b == -1) {
-			b = await this.getb();
-		}
-
-		if (b < 0x80) {
+	this.getc = function() {
+		let b = this.getb();
+		if (! (b instanceof Promise) && b < 0x80) {
 			return b;
-		} else if ((b & 0xE0) == 0xC0) {
-			let c = (b & 0x1F) << 6;
-			b = await this.getb();
-			if ((b & 0xC0) == 0x80) {
-				c |= (b & 0x3F);
-				return c;
-			}
-		} else if ((b & 0xF0) == 0xE0) {
-			let c = (b & 0x0F) << 12;
-			b = await this.getb();
-			if ((b & 0xC0) == 0x80) {
-				c |= (b & 0x3F) << 6;
-				b = await this.getb();
+		}
+		return (async () => {
+			b = await b;
+
+			if (b < 0x80) {
+				return b;
+			} else if ((b & 0xE0) == 0xC0) {
+				let c = (b & 0x1F) << 6;
+				b = this.getb();
+				b = b instanceof Promise ? await b : b;
+
 				if ((b & 0xC0) == 0x80) {
 					c |= (b & 0x3F);
 					return c;
 				}
-			}
-		} else if ((b & 0xF8) == 0xF0) {
-			let c = (b & 0x07) << 18;
-			b = await this.getb();
-			if ((b & 0xC0) == 0x80) {
-				c |= (b & 0x3F) << 12;
-				b = await this.getb();
+			} else if ((b & 0xF0) == 0xE0) {
+				let c = (b & 0x0F) << 12;
+				b = this.getb();
+				b = b instanceof Promise ? await b : b;
+
 				if ((b & 0xC0) == 0x80) {
 					c |= (b & 0x3F) << 6;
-					b = await this.getb();
+					b = this.getb();
+					b = b instanceof Promise ? await b : b;
+
 					if ((b & 0xC0) == 0x80) {
 						c |= (b & 0x3F);
+						return c;
+					}
+				}
+			} else if ((b & 0xF8) == 0xF0) {
+				let c = (b & 0x07) << 18;
+				b = this.getb();
+				b = b instanceof Promise ? await b : b;
 
-						// UTF-16 surrogate pair
-						c -= 0x010000;
-						let c1 = (c >> 10) + 0xD800;
-						let c2 = (c & ((1 << 10) - 1)) + 0xDC00;
+				if ((b & 0xC0) == 0x80) {
+					c |= (b & 0x3F) << 12;
+					b = this.getb();
+					b = b instanceof Promise ? await b : b;
 
-						await this.ungetc(c2);
-						return c1;
+					if ((b & 0xC0) == 0x80) {
+						c |= (b & 0x3F) << 6;
+						b = this.getb();
+						b = b instanceof Promise ? await b : b;
+
+						if ((b & 0xC0) == 0x80) {
+							c |= (b & 0x3F);
+
+							// UTF-16 surrogate pair
+							c -= 0x010000;
+							let c1 = (c >> 10) + 0xD800;
+							let c2 = (c & ((1 << 10) - 1)) + 0xDC00;
+
+							c = this.ungetc(c2);
+							c = c instanceof Promise ? await c : c;
+
+							return c1;
+						}
 					}
 				}
 			}
-		}
 
-		await this.ilseq();
+			await this.ilseq();
+		})();
 	};
 
-	this.ungetc = async function(c) {
+	this.ungetc = function(c) {
+		// This knows that this.ungetb() is synchronous
+
 		if (c <= 0x7F) {
-			await this.ungetb(c);
+			this.ungetb(c);
 		} else if (c <= 0x7FF) {
-			await this.ungetb(0x80 | (c & 0x3F));
-			await this.ungetb(0xC0 | (c >> 6));
+			this.ungetb(0x80 | (c & 0x3F));
+			this.ungetb(0xC0 | (c >> 6));
 		} else {
-			await this.ungetb(0x80 | (c & 0x3F));
-			await this.ungetb(0x80 | ((c >> 6) & 0x3F));
-			await this.ungetb(0xE0 | (c >> 12));
+			this.ungetb(0x80 | (c & 0x3F));
+			this.ungetb(0x80 | ((c >> 6) & 0x3F));
+			this.ungetb(0xE0 | (c >> 12));
 		}
 	};
 
