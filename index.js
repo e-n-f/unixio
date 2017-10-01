@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const fsext = require('fs-ext');
 const fsextra = require('fs-extra');
 const tty = require('tty');
@@ -12,12 +13,28 @@ exports.SEEK_END = 2;
 exports.open = fsextra.open;
 exports.close = fsextra.close;
 
-exports.read = async function(fd, buf, off, len) {
-	return (await fsextra.read(fd, buf, off, len)).bytesRead;
+exports.read = function(fd, buf, off, len) {
+	return new Promise((resolve, reject) => {
+		fs.read(fd, buf, off, len, null, (err, n) => {
+			if (err) {
+				return reject(err);
+			} else {
+				resolve(n);
+			}
+		})
+	});
 };
 
-exports.write = async function(fd, buf, off, len) {
-	return (await fsextra.write(fd, buf, off, len)).bytesWritten;
+exports.write = function(fd, buf, off, len) {
+	return new Promise((resolve, reject) => {
+		fs.write(fd, buf, off, len, null, (err, n) => {
+			if (err) {
+				return reject(err);
+			} else {
+				resolve(n);
+			}
+		})
+	});
 };
 
 exports.seek = function(fd, off, whence) {
