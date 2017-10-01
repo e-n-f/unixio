@@ -170,7 +170,7 @@ exports.File = function(stream) {
 		return len;
 	};
 
-	this.getb = async function() {
+	this.getb = function() {
 		if (this.ungot != null) {
 			let b = this.ungot.b;
 			this.ungot = this.ungot.next;
@@ -185,10 +185,31 @@ exports.File = function(stream) {
 			this.readbuf = Buffer.alloc(1000);
 		}
 
-		if (this.readhead >= this.readtail) {
-			this.readhead = 0;
-			this.readtail = await this.stream.read(this.readbuf, 0, this.readbuf.length);
+		if (this.readhead < this.readtail) {
+			return this.readbuf[this.readhead++];
 		}
+
+		let r = this.stream.read(this.readbuf, 0, this.readbuf.length);
+		if (typeof r.then === 'function') {
+			return new Promise((resolve, reject) => {
+				r.then((r2) => {
+					this.readhead = 0;
+					this.readtail = r2;
+
+					if (this.readhead >= this.readtail) {
+						this.eof = true;
+						resolve(exports.EOF);
+					} else {
+						resolve(this.readbuf[this.readhead++]);
+					}
+				}, (err) => {
+					reject(err);
+				});
+			});
+		}
+
+		this.readhead = 0;
+		this.readtail = r;
 
 		if (this.readhead >= this.readtail) {
 			this.eof = true;
