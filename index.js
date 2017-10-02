@@ -729,6 +729,12 @@ exports.File = function(stream) {
 	};
 };
 
+exports.fopen = async function(fname, flags, mode) {
+	let fd = await exports.open(fname, flags, mode);
+
+	return new exports.File(new exports.Fdio(fd));
+};
+
 exports.opened = [];
 
 exports.cleanup = async function() {

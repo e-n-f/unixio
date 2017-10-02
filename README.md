@@ -69,7 +69,8 @@ if necessary as the process is exiting.
 
 ## try { fp = unixio.fopen(name, mode); }
 
-Opens a file for buffered character I/O in the manner of `fopen`.
+Opens a file for buffered character I/O in the manner of `fopen`. Note that the flags are parsed by
+`fs.open`, so they follow those conventions, not exactly those of `stdio`.
 
 ## try { n = await fp.read(buffer, off, len); }
 
@@ -118,14 +119,6 @@ Writes the specified string to the stream.
 
 Reads one JSON token from the stream and returns it as a string, or `null` for EOF.
 Note that strings are returned with their quotation marks in place.
-
-## try { b = await fp.printf(format, …); }
-
-Writes formatted text in the manner of `printf`.
-
-## try { s = await unixio.sprintf(format, …); }
-
-Formats text to a string, using memory I/O.
 
 Constants
 =========
