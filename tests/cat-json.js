@@ -5,6 +5,8 @@
 let unixio = require('../index.js');
 
 async function cat(fp) {
+	let depth = 0;
+
 	while (true) {
 		let s = fp.getj();
 		s = s instanceof Promise ? await s : s;
@@ -13,8 +15,32 @@ async function cat(fp) {
 			break;
 		}
 
-		s += "\n";
-		let p = unixio.stdout.puts(s);
+		let out = "";
+
+		if (s == '{' || s == '[') {
+			depth++;
+		}
+		if (s == '}' || s == ']') {
+			depth--;
+
+			out += "\n";
+			let i;
+			for (i = 0; i < depth; i++) {
+				out += "\t";
+			}
+		}
+
+		out += s;
+
+		if (s == '[' || s == '{' || s == ',') {
+			out += "\n";
+			let i;
+			for (i = 0; i < depth; i++) {
+				out += "\t";
+			}
+		}
+
+		let p = unixio.stdout.puts(out);
 		p = p instanceof Promise ? await p : p;
 	}
 }
