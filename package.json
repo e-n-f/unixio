@@ -1,6 +1,6 @@
 {
   "name": "unixio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "File I/O in the sprit of C",
   "main": "index.js",
   "scripts": {
