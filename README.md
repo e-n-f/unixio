@@ -67,7 +67,7 @@ Adds convenience functions for reading and writing text to and from the specifie
 Note that there is a global reference to all Files that have not been closed, so that they can be flushed
 if necessary as the process is exiting.
 
-## try { fp = unixio.fopen(name, mode); }
+## try { fp = await unixio.fopen(name, mode); }
 
 Opens a file for buffered character I/O in the manner of `fopen`. Note that the flags are parsed by
 `fs.open`, so they follow those conventions, not exactly those of `stdio`.
