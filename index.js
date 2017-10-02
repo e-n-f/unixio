@@ -888,6 +888,6 @@ exports.usleep = function(n) {
         return new Promise((resolve, reject) => {
                 setTimeout(() => {
                         resolve();
-                }, n);
+                }, n / 1000);
         });
 }

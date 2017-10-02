@@ -13,7 +13,7 @@ async function writeloop() {
 		let n = await pipe.to.write(b, 0, b.length);
 
 		if (i % 10 == 0) {
-			await unixio.usleep(500);
+			await unixio.usleep(500000);
 		}
 	}
 	await pipe.to.close();

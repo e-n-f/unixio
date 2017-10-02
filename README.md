@@ -160,4 +160,6 @@ Utility
 
 ## try { await unixio.usleep(n) }
 
-Sleeps for *n* milliseconds by scheduling a Promise to resolve at that time.
+Sleeps for *n* microseconds by scheduling a Promise to resolve at that time.
+(Note that the sleep time is only accurate to one millisecond at best, since
+that is the unit that the underlying `setTimeout` uses.
