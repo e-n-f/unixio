@@ -145,6 +145,135 @@ exports.Memio = function(b) {
 	};
 };
 
+exports.Mempipe = function() {
+	this.buf = Buffer.alloc(5000);
+	this.head = 0;
+	this.tail = 0;
+	this.waiting = null;
+
+	this.eof = false; // if writer has closed
+	this.broken = false; // if reader has closed
+
+	this.to = { };
+	this.from = { };
+
+	this.to.seek = this.from.seek = this.to.read = this.from.write = function() {
+		let e = new Error();
+		e.errno = 29;
+		e.code = "ESPIPE";
+		throw(e);
+	};
+
+	this.to.write = (buf, off, len) => {
+		if (len <= 0) {
+			return 0;
+		}
+
+		if (this.broken) {
+			let e = new Error();
+			e.errno = 32;
+			e.code = "EPIPE";
+			throw(e);
+		}
+
+		if (this.tail + len <= this.buf.length) {
+			// Append into buffer if possible
+
+			buf.copy(this.buf, this.tail, off, off + len);
+			this.tail += len;
+		} else if (this.tail - this.head + len < this.buf.length) {
+			// Shift buffer if possible
+
+			this.buf.cop(this.buf, 0, this.head, this.tail);
+			this.tail = this.tail - this.head;
+			this.head = 0;
+			buf.copy(this.buf, this.tail, off, off + len);
+			this.tail += len;
+		} else {
+			// Grow buffer. Should writes block instead?
+
+			let nbuf = Buffer.alloc(this.tail - this.head + len + 1000);
+			this.buf.copy(nbuf, 0, this.head, this.tail);
+			this.tail = this.tail - this.head;
+			this.head = 0;
+			this.buf = nbuf;
+
+			buf.copy(nbuf, this.tail, off, off + len);
+			this.tail += len;
+		}
+
+		if (this.waiting == null) {
+			return len;
+		}
+
+		return (async () => {
+			// Wake anyone who is waiting as long as more input is available
+
+			while (this.waiting != null && this.tail > this.head) {
+				let w = this.waiting;
+				this.waiting = w.next;
+
+				w.len = Math.min(w.len, this.tail - this.head);
+				this.buf.copy(w.buf, w.off, this.head, this.head + w.len);
+				this.head += w.len;
+
+				w.resolve(w.len);
+			}
+		})();
+	};
+
+	this.from.read = (buf, off, len) => {
+		if (this.tail > this.head) {
+			len = Math.min(len, this.tail - this.head);
+			this.buf.copy(buf, off, this.head, this.head + len);
+			this.head += len;
+			return len;
+		}
+
+		if (this.eof) {
+			return 0;
+		}
+
+		return new Promise((resolve, reject) => {
+			this.waiting = {
+				resolve: resolve,
+				buf: buf,
+				off: off,
+				len: len,
+				next: this.waiting
+			};
+		});
+	};
+
+	this.from.close = () => {
+		this.broken = true;
+		return 0;
+	};
+
+	this.to.close = () => {
+		this.eof = true;
+
+		if (this.waiting == null) {
+			return 0;
+		}
+
+		return (async () => {
+			// Wake anyone who is waiting, either for final input or for EOF
+
+			while (this.waiting != null) {
+				let w = this.waiting;
+				this.waiting = w.next;
+
+				w.len = Math.min(w.len, this.tail - this.head);
+				this.buf.copy(w.buf, w.off, this.head, this.head + w.len);
+				this.head += w.len;
+
+				w.resolve(w.len);
+			}
+		})();
+	};
+};
+
 exports.File = function(stream) {
 	this.stream = stream;
 
@@ -753,4 +882,12 @@ exports.stderr.buffered = 0;
 
 if (tty.isatty(1)) {
 	exports.stdout.buffered = 1;
+}
+
+exports.usleep = function(n) {
+        return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                        resolve();
+                }, n);
+        });
 }

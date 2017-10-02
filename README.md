@@ -56,6 +56,30 @@ Opens a stream to append to the end of a new buffer.
 
 Opens a stream to read from the start of an existing Buffer.
 
+In-process pipe
+===============
+
+## p = new unixio.Mempipe();
+
+## try { n = await p.to.write(buf, off, len); }
+
+Puts data into the pipe. It is buffered until a reader is ready to consume it.
+
+## try { n = await p.to.close(); }
+
+Closes the pipe for writing. Readers can consume the remaining data from the pipe,
+and then will receive EOF after no more is available.
+
+## try { n = await p.from.read(buf, off, len); }
+
+Reads data from the pipe. If no data is available, the `await` does not resolve
+until data is available or the pipe has been closed.
+
+## try { n = await p.from.close(); }
+
+Closes the pipe for reading. Any additional writes to the pipe will result in
+a broken pipe error.
+
 Buffered I/O
 ============
 
@@ -130,3 +154,10 @@ Constants
  * unixio.stdin = new unixio.File(new unixio.Fdio(0));
  * unixio.stdout = new unixio.File(new unixio.Fdio(1));
  * unixio.stderr = new unixio.File(new unixio.Fdio(2));
+
+Utility
+=======
+
+## try { await unixio.usleep(n) }
+
+Sleeps for *n* milliseconds by scheduling a Promise to resolve at that time.
