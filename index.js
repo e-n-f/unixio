@@ -406,6 +406,8 @@ exports.File = function(stream) {
 			this.ungetb(0x80 | ((c >> 6) & 0x3F));
 			this.ungetb(0xE0 | (c >> 12));
 		}
+
+		return c;
 	};
 
 	this.gets = async function() {
@@ -511,10 +513,18 @@ exports.File = function(stream) {
 		}
 	};
 
-	this.peekc = async function() {
-		let c = await this.getc();
-		await this.ungetc(c);
-		return c;
+	this.peekc = function() {
+		let c = this.getc();
+		if (c instanceof Promise) {
+			return (async () => {
+				c = await c;
+				// Knows that ungetc() is synchronous;
+				return this.ungetc(c);
+			})();
+		}
+
+		// Knows that ungetc() is synchronous;
+		return this.ungetc(c);
 	};
 
 	this.ilseq = async function() {
@@ -645,23 +655,28 @@ exports.File = function(stream) {
 				str += "0";
 			} else if (c >= 0x31 && c <= 0x39) { // 1 through 9
 				str += String.fromCharCode(c);
-				c = await this.peekc();
+				c = this.peekc();
+				c = c instanceof Promise ? await c : c;
 
 				while (c >= 0x30 && c <= 0x39) {
 					c = this.getc();
 					c = c instanceof Promise ? await c : c;
 					str += String.fromCharCode(c);
 
-					c = await this.peekc();
+					c = this.peekc();
+					c = c instanceof Promise ? await c : c;
 				}
 			}
 
-			if ((await this.peekc()) == 0x2E) { // .
+			c = this.peekc();
+			c = c instanceof Promise ? await c : c;
+			if (c == 0x2E) { // .
 				c = this.getc();
 				c = c instanceof Promise ? await c : c;
 				str += ".";
 
-				c = await this.peekc();
+				c = this.peekc();
+				c = c instanceof Promise ? await c : c;
 				if (c < 0x30 || c > 0x39) {
 					await this.ilseq();
 				}
@@ -671,17 +686,20 @@ exports.File = function(stream) {
 					c = c instanceof Promise ? await c : c;
 					str += String.fromCharCode(c);
 
-					c = await this.peekc();
+					c = this.peekc();
+					c = c instanceof Promise ? await c : c;
 				}
 			}
 
-			c = await this.peekc();
+			c = this.peekc();
+			c = c instanceof Promise ? await c : c;
 			if (c == 0x45 || c == 0x65) { // E
 				c = this.getc();
 				c = c instanceof Promise ? await c : c;
 				str += String.fromCharCode(c);
 
-				c = await this.peekc();
+				c = this.peekc();
+				c = c instanceof Promise ? await c : c;
 
 				if (c == 0x2B || c == 0x2D) { // +, -
 					c = this.getc();
@@ -689,7 +707,8 @@ exports.File = function(stream) {
 					str += String.fromCharCode(c);
 				}
 
-				c = await this.peekc();
+				c = this.peekc();
+				c = c instanceof Promise ? await c : c;
 				if (c < 0x30 || c > 0x39) {
 					await this.ilseq();
 				}
@@ -698,7 +717,8 @@ exports.File = function(stream) {
 					c = c instanceof Promise ? await c : c;
 					str += String.fromCharCode(c);
 
-					c = await this.peekc();
+					c = this.peekc();
+					c = c instanceof Promise ? await c : c;
 				}
 			}
 
