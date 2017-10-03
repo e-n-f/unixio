@@ -219,6 +219,8 @@ exports.Mempipe = function() {
 
 				w.resolve(w.len);
 			}
+
+			return len;
 		})();
 	};
 
@@ -270,6 +272,8 @@ exports.Mempipe = function() {
 
 				w.resolve(w.len);
 			}
+
+			return 0;
 		})();
 	};
 };
