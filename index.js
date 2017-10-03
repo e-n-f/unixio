@@ -206,22 +206,20 @@ exports.Mempipe = function() {
 			return len;
 		}
 
-		return (async () => {
-			// Wake anyone who is waiting as long as more input is available
+		// Wake anyone who is waiting as long as more input is available
 
-			while (this.waiting != null && this.tail > this.head) {
-				let w = this.waiting;
-				this.waiting = w.next;
+		while (this.waiting != null && this.tail > this.head) {
+			let w = this.waiting;
+			this.waiting = w.next;
 
-				w.len = Math.min(w.len, this.tail - this.head);
-				this.buf.copy(w.buf, w.off, this.head, this.head + w.len);
-				this.head += w.len;
+			w.len = Math.min(w.len, this.tail - this.head);
+			this.buf.copy(w.buf, w.off, this.head, this.head + w.len);
+			this.head += w.len;
 
-				w.resolve(w.len);
-			}
+			setTimeout(w.resolve, 0, w.len);
+		}
 
-			return len;
-		})();
+		return len;
 	};
 
 	this.from.read = (buf, off, len) => {
@@ -259,22 +257,20 @@ exports.Mempipe = function() {
 			return 0;
 		}
 
-		return (async () => {
-			// Wake anyone who is waiting, either for final input or for EOF
+		// Wake anyone who is waiting, either for final input or for EOF
 
-			while (this.waiting != null) {
-				let w = this.waiting;
-				this.waiting = w.next;
+		while (this.waiting != null) {
+			let w = this.waiting;
+			this.waiting = w.next;
 
-				w.len = Math.min(w.len, this.tail - this.head);
-				this.buf.copy(w.buf, w.off, this.head, this.head + w.len);
-				this.head += w.len;
+			w.len = Math.min(w.len, this.tail - this.head);
+			this.buf.copy(w.buf, w.off, this.head, this.head + w.len);
+			this.head += w.len;
 
-				w.resolve(w.len);
-			}
+			setTimeout(w.resolve, 0, w.len);
+		}
 
-			return 0;
-		})();
+		return 0;
 	};
 };
 
