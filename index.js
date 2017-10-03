@@ -464,45 +464,61 @@ exports.File = function(stream) {
 				return b;
 			} else if ((b & 0xE0) == 0xC0) {
 				let c = (b & 0x1F) << 6;
-				b = this.getb();
-				b = b instanceof Promise ? await b : b;
 
-				if ((b & 0xC0) == 0x80) {
-					c |= (b & 0x3F);
+				let b1 = this.getb();
+				b1 = b1 instanceof Promise ? await b1 : b1;
+
+				if ((b1 & 0xC0) == 0x80) {
+					c |= (b1 & 0x3F);
 					return c;
+				} else {
+					this.ungetb(b1);
+					return 0xFFFD;
 				}
 			} else if ((b & 0xF0) == 0xE0) {
 				let c = (b & 0x0F) << 12;
-				b = this.getb();
-				b = b instanceof Promise ? await b : b;
 
-				if ((b & 0xC0) == 0x80) {
-					c |= (b & 0x3F) << 6;
-					b = this.getb();
-					b = b instanceof Promise ? await b : b;
+				let b1 = this.getb();
+				b1 = b1 instanceof Promise ? await b1 : b1;
 
-					if ((b & 0xC0) == 0x80) {
-						c |= (b & 0x3F);
+				if ((b1 & 0xC0) == 0x80) {
+					c |= (b1 & 0x3F) << 6;
+
+					let b2 = this.getb();
+					b2 = b2 instanceof Promise ? await b2 : b2;
+
+					if ((b2 & 0xC0) == 0x80) {
+						c |= (b2 & 0x3F);
 						return c;
+					} else {
+						this.ungetb(b2);
+						this.ungetb(b1);
+						return 0xFFFD;
 					}
+				} else {
+					this.ungetb(b1);
+					return 0xFFFD;
 				}
 			} else if ((b & 0xF8) == 0xF0) {
 				let c = (b & 0x07) << 18;
-				b = this.getb();
-				b = b instanceof Promise ? await b : b;
 
-				if ((b & 0xC0) == 0x80) {
-					c |= (b & 0x3F) << 12;
-					b = this.getb();
-					b = b instanceof Promise ? await b : b;
+				let b1 = this.getb();
+				b1 = b1 instanceof Promise ? await b1 : b1;
 
-					if ((b & 0xC0) == 0x80) {
-						c |= (b & 0x3F) << 6;
-						b = this.getb();
-						b = b instanceof Promise ? await b : b;
+				if ((b1 & 0xC0) == 0x80) {
+					c |= (b1 & 0x3F) << 12;
 
-						if ((b & 0xC0) == 0x80) {
-							c |= (b & 0x3F);
+					let b2 = this.getb();
+					b2 = b2 instanceof Promise ? await b2 : b2;
+
+					if ((b2 & 0xC0) == 0x80) {
+						c |= (b2 & 0x3F) << 6;
+
+						let b3 = this.getb();
+						b3 = b3 instanceof Promise ? await b3 : b3;
+
+						if ((b3 & 0xC0) == 0x80) {
+							c |= (b3 & 0x3F);
 
 							// UTF-16 surrogate pair
 							c -= 0x010000;
@@ -513,9 +529,23 @@ exports.File = function(stream) {
 							c = c instanceof Promise ? await c : c;
 
 							return c1;
+						} else {
+							this.ungetb(b3);
+							this.ungetb(b2);
+							this.ungetb(b1);
+							return 0xFFFD;
 						}
+					} else {
+						this.ungetb(b2);
+						this.ungetb(b1);
+						return 0xFFFD;
 					}
+				} else {
+					this.ungetb(b1);
+					return 0xFFFD;
 				}
+			} else {
+				return 0xFFFD;
 			}
 
 			await this.ilseq();
