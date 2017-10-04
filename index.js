@@ -921,3 +921,78 @@ exports.usleep = function(n) {
                 }, n / 1000);
         });
 }
+
+exports.getopt = async function(plain, withargs) {
+	let argv = process.argv;
+
+	let optind;
+	for (optind = 2; optind < argv.length; optind++) {
+		if (argv[optind] === "--") {
+			optind++;
+			break;
+		} else if (argv[optind] === "-") {
+			break;
+		} else if (argv[optind].startsWith("--")) {
+			let ix = argv[optind].indexOf("=");
+			if (ix >= 0) {
+				let trunc = argv[optind].substr(0, ix);
+				if (trunc in withargs) {
+					await withargs[trunc](argv[optind].substr(ix + 1));
+				} else {
+					let e = new Error("Unknown option " + trunc);
+					e.unknown = argv[optind];
+					e.optind = optind;
+					throw(e);
+				}
+			} else if (argv[optind] in plain) {
+				await plain[argv[optind]]();
+			} else if (argv[optind] in withargs) {
+				if (optind + 1 < argv.length) {
+					await withargs[argv[optind]](argv[optind + 1]);
+					optind++;
+				} else {
+					let e = new Error("No argument given for " + argv[optind]);
+					e.unknown = argv[optind];
+					e.optind = optind;
+					throw(e);
+				}
+			} else {
+				let e = new Error("Unknown option " + argv[optind]);
+				e.unknown = argv[optind];
+				e.optind = optind;
+				throw(e);
+			}
+		} else if (argv[optind].startsWith("-")) {
+			let trunc = argv[optind].substr(0, 2);
+			if (trunc in plain) {
+				await plain[trunc]();
+
+				if (argv[optind].length > 2) {
+					argv[optind] = "-" + argv[optind].substr(2);
+					optind--;
+				}
+			} else if (trunc in withargs) {
+				if (argv[optind].length > 2) {
+					await withargs[trunc](argv[optind].substr(2));
+				} else if (optind + 1 < argv.length) {
+					await withargs[trunc](argv[optind + 1]);
+					optind++;
+				} else {
+					let e = new Error("No argument given for " + trunc);
+					e.unknown = argv[optind];
+					e.optind = optind;
+					throw(e);
+				}
+			} else {
+				let e = new Error("Unknown option " + argv[optind]);
+				e.unknown = argv[optind];
+				e.optind = optind;
+				throw(e);
+			}
+		} else {
+			break;
+		}
+	}
+
+	return optind;
+}

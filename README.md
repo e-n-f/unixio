@@ -163,3 +163,32 @@ Utility
 Sleeps for *n* microseconds by scheduling a Promise to resolve at that time.
 (Note that the sleep time is only accurate to one millisecond at best, since
 that is the unit that the underlying `setTimeout` uses.
+
+Command line arguments
+======================
+
+## try { optind = await unixio.getopt(noargs, withargs); }
+
+Parses command line arguments. `noargs` and `withargs` are maps from option names
+(like "-e" or "--verbose") to functions.
+
+Options in `noargs` do not take arguments,
+and multiple short options may be combined in a single command line argument.
+
+Options in `withargs`
+take an argument, which is either the text following a short argument, the next argument,
+or text following an `=` sign in a long argument. That is, the following will all work:
+
+ * `-etext`
+ * `-e text`
+ * `--expression=text`
+ * `--expression text`
+
+An argument of `-` or `--` ends argument processing, with `-` being left available
+as a filename argument, and `--` being eliminated.
+
+The return value from `getopt` is the index of the first element of `process.argv`
+that is a filename argument, not an option.
+
+If an option specified in `process.argv` has no specified handler, or if there is no
+argument text for an option in `withargs`, it throws an Error.
