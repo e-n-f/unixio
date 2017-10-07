@@ -197,6 +197,11 @@ Sleeps for *n* microseconds by scheduling a Promise to resolve at that time.
 (Note that the sleep time is only accurate to one millisecond at best, since
 that is the unit that the underlying `setTimeout` uses.
 
+## unixio.call(f);
+
+Calls the named function, and calls the Promise that it returns with a `then` method
+that exits on error, as a convenience for calling into the first `async` function.
+
 Constants
 =========
 

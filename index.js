@@ -995,4 +995,16 @@ exports.getopt = async function(plain, withargs) {
 	}
 
 	return optind;
-}
+};
+
+exports.call = function(f) {
+	let ret = f();
+	if (ret instanceof Promise) {
+		ret.then(function() {
+			;
+		}, function(err) {
+			console.error(err);
+			process.exit(1);
+		});
+	}
+};

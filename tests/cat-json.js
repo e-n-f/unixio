@@ -58,9 +58,4 @@ async function main() {
 	}
 }
 
-main().then(function() {
-	;
-}, function(err) {
-	console.error(err);
-	process.exit(1);
-});
+unixio.call(main);
