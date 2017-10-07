@@ -1,8 +1,8 @@
 #!/usr/local/bin/node
 
-'use strict';
+"use strict";
 
-let unixio = require('../index.js');
+let unixio = require("../index.js");
 
 async function cat(fp) {
 	while (true) {

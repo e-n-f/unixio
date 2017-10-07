@@ -1,11 +1,11 @@
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const fsext = require('fs-ext');
-const fsextra = require('fs-extra');
-const tty = require('tty');
+const fs = require("fs");
+const fsext = require("fs-ext");
+const fsextra = require("fs-extra");
+const tty = require("tty");
 
-exports.EOF = -1
+exports.EOF = -1;
 exports.SEEK_SET = 0;
 exports.SEEK_CUR = 1;
 exports.SEEK_END = 2;
@@ -21,7 +21,7 @@ exports.read = function(fd, buf, off, len) {
 			} else {
 				resolve(n);
 			}
-		})
+		});
 	});
 };
 
@@ -33,7 +33,7 @@ exports.write = function(fd, buf, off, len) {
 			} else {
 				resolve(n);
 			}
-		})
+		});
 	});
 };
 
@@ -45,7 +45,7 @@ exports.seek = function(fd, off, whence) {
 			} else {
 				resolve(pos);
 			}
-		})
+		});
 	});
 };
 
@@ -68,10 +68,8 @@ exports.Fdio = function(fd) {
 		return exports.seek(this.fd, off, whence);
 	};
 
-	this.flush = function() {
-
-	};
-}
+	this.flush = function() {};
+};
 
 exports.Memio = function(b) {
 	if (arguments.length == 0) {
@@ -125,7 +123,7 @@ exports.Memio = function(b) {
 		let e = new Error();
 		e.errno = 22;
 		e.code = "EINVAL";
-		throw(e);
+		throw e;
 	};
 
 	this.flush = function() {
@@ -141,7 +139,7 @@ exports.Memio = function(b) {
 	};
 
 	this.toString = function() {
-		return this.buf.toString('utf-8', 0, this.end);
+		return this.buf.toString("utf-8", 0, this.end);
 	};
 };
 
@@ -154,14 +152,14 @@ exports.Mempipe = function() {
 	this.eof = false; // if writer has closed
 	this.broken = false; // if reader has closed
 
-	this.to = { };
-	this.from = { };
+	this.to = {};
+	this.from = {};
 
 	this.to.seek = this.from.seek = this.to.read = this.from.write = function() {
 		let e = new Error();
 		e.errno = 29;
 		e.code = "ESPIPE";
-		throw(e);
+		throw e;
 	};
 
 	this.to.write = (buf, off, len) => {
@@ -173,7 +171,7 @@ exports.Mempipe = function() {
 			let e = new Error();
 			e.errno = 32;
 			e.code = "EPIPE";
-			throw(e);
+			throw e;
 		}
 
 		if (this.tail + len <= this.buf.length) {
@@ -340,7 +338,7 @@ exports.File = function(stream) {
 
 		return (async () => {
 			let r = this.stream.read(this.readbuf, 0, this.readbuf.length);
-			if (typeof r.then === 'function') {
+			if (typeof r.then === "function") {
 				r = await r;
 			}
 
@@ -388,7 +386,7 @@ exports.File = function(stream) {
 
 			return b;
 		})();
-	}
+	};
 
 	this.flush1 = async function() {
 		if (this.writebuf != null) {
@@ -412,9 +410,9 @@ exports.File = function(stream) {
 		}
 
 		if (this.surrogate >= 0) {
-			await this.putb(0xE0 | (this.surrogate >> 12));
-			await this.putb(0x80 | ((this.surrogate >> 6) & 0x3F));
-			await this.putb(0x80 | (this.surrogate & 0x3F));
+			await this.putb(0xe0 | (this.surrogate >> 12));
+			await this.putb(0x80 | ((this.surrogate >> 6) & 0x3f));
+			await this.putb(0x80 | (this.surrogate & 0x3f));
 			this.surrogate = -1;
 
 			await this.flush();
@@ -454,7 +452,7 @@ exports.File = function(stream) {
 
 	this.getc = function() {
 		let b = this.getb();
-		if (! (b instanceof Promise) && b < 0x80) {
+		if (!(b instanceof Promise) && b < 0x80) {
 			return b;
 		}
 		return (async () => {
@@ -462,68 +460,68 @@ exports.File = function(stream) {
 
 			if (b < 0x80) {
 				return b;
-			} else if ((b & 0xE0) == 0xC0) {
-				let c = (b & 0x1F) << 6;
+			} else if ((b & 0xe0) == 0xc0) {
+				let c = (b & 0x1f) << 6;
 
 				let b1 = this.getb();
 				b1 = b1 instanceof Promise ? await b1 : b1;
 
-				if ((b1 & 0xC0) == 0x80) {
-					c |= (b1 & 0x3F);
+				if ((b1 & 0xc0) == 0x80) {
+					c |= b1 & 0x3f;
 					return c;
 				} else {
 					this.ungetb(b1);
-					return 0xFFFD;
+					return 0xfffd;
 				}
-			} else if ((b & 0xF0) == 0xE0) {
-				let c = (b & 0x0F) << 12;
+			} else if ((b & 0xf0) == 0xe0) {
+				let c = (b & 0x0f) << 12;
 
 				let b1 = this.getb();
 				b1 = b1 instanceof Promise ? await b1 : b1;
 
-				if ((b1 & 0xC0) == 0x80) {
-					c |= (b1 & 0x3F) << 6;
+				if ((b1 & 0xc0) == 0x80) {
+					c |= (b1 & 0x3f) << 6;
 
 					let b2 = this.getb();
 					b2 = b2 instanceof Promise ? await b2 : b2;
 
-					if ((b2 & 0xC0) == 0x80) {
-						c |= (b2 & 0x3F);
+					if ((b2 & 0xc0) == 0x80) {
+						c |= b2 & 0x3f;
 						return c;
 					} else {
 						this.ungetb(b2);
 						this.ungetb(b1);
-						return 0xFFFD;
+						return 0xfffd;
 					}
 				} else {
 					this.ungetb(b1);
-					return 0xFFFD;
+					return 0xfffd;
 				}
-			} else if ((b & 0xF8) == 0xF0) {
+			} else if ((b & 0xf8) == 0xf0) {
 				let c = (b & 0x07) << 18;
 
 				let b1 = this.getb();
 				b1 = b1 instanceof Promise ? await b1 : b1;
 
-				if ((b1 & 0xC0) == 0x80) {
-					c |= (b1 & 0x3F) << 12;
+				if ((b1 & 0xc0) == 0x80) {
+					c |= (b1 & 0x3f) << 12;
 
 					let b2 = this.getb();
 					b2 = b2 instanceof Promise ? await b2 : b2;
 
-					if ((b2 & 0xC0) == 0x80) {
-						c |= (b2 & 0x3F) << 6;
+					if ((b2 & 0xc0) == 0x80) {
+						c |= (b2 & 0x3f) << 6;
 
 						let b3 = this.getb();
 						b3 = b3 instanceof Promise ? await b3 : b3;
 
-						if ((b3 & 0xC0) == 0x80) {
-							c |= (b3 & 0x3F);
+						if ((b3 & 0xc0) == 0x80) {
+							c |= b3 & 0x3f;
 
 							// UTF-16 surrogate pair
 							c -= 0x010000;
-							let c1 = (c >> 10) + 0xD800;
-							let c2 = (c & ((1 << 10) - 1)) + 0xDC00;
+							let c1 = (c >> 10) + 0xd800;
+							let c2 = (c & ((1 << 10) - 1)) + 0xdc00;
 
 							c = this.ungetc(c2);
 							c = c instanceof Promise ? await c : c;
@@ -533,19 +531,19 @@ exports.File = function(stream) {
 							this.ungetb(b3);
 							this.ungetb(b2);
 							this.ungetb(b1);
-							return 0xFFFD;
+							return 0xfffd;
 						}
 					} else {
 						this.ungetb(b2);
 						this.ungetb(b1);
-						return 0xFFFD;
+						return 0xfffd;
 					}
 				} else {
 					this.ungetb(b1);
-					return 0xFFFD;
+					return 0xfffd;
 				}
 			} else {
-				return 0xFFFD;
+				return 0xfffd;
 			}
 
 			await this.ilseq();
@@ -555,15 +553,15 @@ exports.File = function(stream) {
 	this.ungetc = function(c) {
 		// This knows that this.ungetb() is synchronous
 
-		if (c <= 0x7F) {
+		if (c <= 0x7f) {
 			this.ungetb(c);
-		} else if (c <= 0x7FF) {
-			this.ungetb(0x80 | (c & 0x3F));
-			this.ungetb(0xC0 | (c >> 6));
+		} else if (c <= 0x7ff) {
+			this.ungetb(0x80 | (c & 0x3f));
+			this.ungetb(0xc0 | (c >> 6));
 		} else {
-			this.ungetb(0x80 | (c & 0x3F));
-			this.ungetb(0x80 | ((c >> 6) & 0x3F));
-			this.ungetb(0xE0 | (c >> 12));
+			this.ungetb(0x80 | (c & 0x3f));
+			this.ungetb(0x80 | ((c >> 6) & 0x3f));
+			this.ungetb(0xe0 | (c >> 12));
 		}
 
 		return c;
@@ -602,9 +600,9 @@ exports.File = function(stream) {
 
 		return (async () => {
 			if (this.surrogate >= 0) {
-				if (c >= 0xDC00 && c <= 0xDFFFF) {
-					let c1 = this.surrogate - 0xD800;
-					let c2 = c - 0xDC00;
+				if (c >= 0xdc00 && c <= 0xdffff) {
+					let c1 = this.surrogate - 0xd800;
+					let c2 = c - 0xdc00;
 					this.surrogate = -1;
 					c = ((c1 << 10) | c2) + 0x010000;
 				} else {
@@ -612,9 +610,9 @@ exports.File = function(stream) {
 					// so write first char literally,
 					// followed by whatever we were given
 
-					await this.putb(0xE0 | (this.surrogate >> 12));
-					await this.putb(0x80 | ((this.surrogate >> 6) & 0x3F));
-					await this.putb(0x80 | (this.surrogate & 0x3F));
+					await this.putb(0xe0 | (this.surrogate >> 12));
+					await this.putb(0x80 | ((this.surrogate >> 6) & 0x3f));
+					await this.putb(0x80 | (this.surrogate & 0x3f));
 					this.surrogate = -1;
 				}
 
@@ -622,41 +620,41 @@ exports.File = function(stream) {
 			}
 
 			let t;
-			if (c <= 0x7F) {
+			if (c <= 0x7f) {
 				t = this.putb(c);
 				t = t instanceof Promise ? await t : t;
-			} else if (c <= 0x7FF) {
-				t = this.putb(0xC0 | (c >> 6));
+			} else if (c <= 0x7ff) {
+				t = this.putb(0xc0 | (c >> 6));
 				t = t instanceof Promise ? await t : t;
 
-				t = this.putb(0x80 | (c & 0x3F));
+				t = this.putb(0x80 | (c & 0x3f));
 				t = t instanceof Promise ? await t : t;
-			} else if (c <= 0xFFFF) {
-				if (c >= 0xD800 && c <= 0xDBFF) {
+			} else if (c <= 0xffff) {
+				if (c >= 0xd800 && c <= 0xdbff) {
 					// First char of UTF-16 surrogate pair
 					this.surrogate = c;
 					return c;
 				}
 
-				t = this.putb(0xE0 | (c >> 12));
+				t = this.putb(0xe0 | (c >> 12));
 				t = t instanceof Promise ? await t : t;
 
-				t = this.putb(0x80 | ((c >> 6) & 0x3F));
+				t = this.putb(0x80 | ((c >> 6) & 0x3f));
 				t = t instanceof Promise ? await t : t;
 
-				t = this.putb(0x80 | (c & 0x3F));
+				t = this.putb(0x80 | (c & 0x3f));
 				t = t instanceof Promise ? await t : t;
 			} else {
-				t = this.putb(0xF0 | (c >> 18));
+				t = this.putb(0xf0 | (c >> 18));
 				t = t instanceof Promise ? await t : t;
 
-				t = this.putb(0x80 | ((c >> 12) & 0x3F));
+				t = this.putb(0x80 | ((c >> 12) & 0x3f));
 				t = t instanceof Promise ? await t : t;
 
-				t = this.putb(0x80 | ((c >> 6) & 0x3F));
+				t = this.putb(0x80 | ((c >> 6) & 0x3f));
 				t = t instanceof Promise ? await t : t;
 
-				t = this.putb(0x80 | (c & 0x3F));
+				t = this.putb(0x80 | (c & 0x3f));
 				t = t instanceof Promise ? await t : t;
 			}
 
@@ -690,8 +688,8 @@ exports.File = function(stream) {
 		let e = new Error();
 		e.errno = 92; // XXX MacOS-specific?
 		e.code = "EILSEQ";
-		throw(e);
-	}
+		throw e;
+	};
 
 	this.getj = async function() {
 		let c;
@@ -701,7 +699,7 @@ exports.File = function(stream) {
 			c = c instanceof Promise ? await c : c;
 
 			// Ignorable whitespace
-			if (c == 0x20 || c == 0x0A || c == 0x0D || c == 0x09 || c == 0x1E || c == 0xFEFF) {
+			if (c == 0x20 || c == 0x0a || c == 0x0d || c == 0x09 || c == 0x1e || c == 0xfeff) {
 				continue;
 			}
 
@@ -712,34 +710,34 @@ exports.File = function(stream) {
 			break;
 		}
 
-		if (c == 0x5B) {
+		if (c == 0x5b) {
 			return "[";
 		}
-		if (c == 0x5D) {
+		if (c == 0x5d) {
 			return "]";
 		}
-		if (c == 0x7B) {
+		if (c == 0x7b) {
 			return "{";
 		}
-		if (c == 0x7D) {
+		if (c == 0x7d) {
 			return "}";
 		}
-		if (c == 0x2C) {
+		if (c == 0x2c) {
 			return ",";
 		}
-		if (c == 0x3A) {
+		if (c == 0x3a) {
 			return ":";
 		}
 
 		// Barewords (null, true, false)
-		if ((c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A)) {
+		if ((c >= 0x41 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a)) {
 			let word = String.fromCharCode(c);
 
 			while (true) {
 				c = this.getc();
 				c = c instanceof Promise ? await c : c;
 
-				if ((c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A)) {
+				if ((c >= 0x41 && c <= 0x5a) || (c >= 0x61 && c <= 0x7a)) {
 					word += String.fromCharCode(c);
 				} else {
 					c = this.ungetc(c);
@@ -753,7 +751,7 @@ exports.File = function(stream) {
 
 		// Strings
 		if (c == 0x22) {
-			let str = "\"";
+			let str = '"';
 
 			while (true) {
 				c = this.getc();
@@ -764,15 +762,14 @@ exports.File = function(stream) {
 				}
 
 				if (c == 0x22) {
-					str += "\"";
+					str += '"';
 					break;
-				} else if (c == 0x5C) {
+				} else if (c == 0x5c) {
 					c = this.getc();
 					c = c instanceof Promise ? await c : c;
 
-					if (c == 0x22 || c == 0x5C || c == 0x2F || c == 0x62 ||
-					    c == 0x66 || c == 0x6E || c == 0x72 || c == 0x74) {
-						str += "\"" + String.fromCharCode(c);
+					if (c == 0x22 || c == 0x5c || c == 0x2f || c == 0x62 || c == 0x66 || c == 0x6e || c == 0x72 || c == 0x74) {
+						str += '"' + String.fromCharCode(c);
 					} else if (c == 0x75) {
 						str += "\\u";
 
@@ -801,10 +798,11 @@ exports.File = function(stream) {
 		}
 
 		// Numbers
-		if ((c >= 0x30 && c <= 0x39) || c == 0x2D) { // digits, minus
+		if ((c >= 0x30 && c <= 0x39) || c == 0x2d) {
+			// digits, minus
 			let str = "";
 
-			if (c == 0x2D) {
+			if (c == 0x2d) {
 				str += "-";
 				c = this.getc();
 				c = c instanceof Promise ? await c : c;
@@ -812,7 +810,8 @@ exports.File = function(stream) {
 
 			if (c == 0x30) {
 				str += "0";
-			} else if (c >= 0x31 && c <= 0x39) { // 1 through 9
+			} else if (c >= 0x31 && c <= 0x39) {
+				// 1 through 9
 				str += String.fromCharCode(c);
 				c = this.peekc();
 				c = c instanceof Promise ? await c : c;
@@ -829,7 +828,8 @@ exports.File = function(stream) {
 
 			c = this.peekc();
 			c = c instanceof Promise ? await c : c;
-			if (c == 0x2E) { // .
+			if (c == 0x2e) {
+				// .
 				c = this.getc();
 				c = c instanceof Promise ? await c : c;
 				str += ".";
@@ -852,7 +852,8 @@ exports.File = function(stream) {
 
 			c = this.peekc();
 			c = c instanceof Promise ? await c : c;
-			if (c == 0x45 || c == 0x65) { // E
+			if (c == 0x45 || c == 0x65) {
+				// E
 				c = this.getc();
 				c = c instanceof Promise ? await c : c;
 				str += String.fromCharCode(c);
@@ -860,7 +861,8 @@ exports.File = function(stream) {
 				c = this.peekc();
 				c = c instanceof Promise ? await c : c;
 
-				if (c == 0x2B || c == 0x2D) { // +, -
+				if (c == 0x2b || c == 0x2d) {
+					// +, -
 					c = this.getc();
 					c = c instanceof Promise ? await c : c;
 					str += String.fromCharCode(c);
@@ -900,9 +902,9 @@ exports.cleanup = async function() {
 	while (exports.opened.length > 0) {
 		await exports.opened[0].close();
 	}
-}
+};
 
-process.on('beforeExit', exports.cleanup);
+process.on("beforeExit", exports.cleanup);
 
 exports.stdin = new exports.File(new exports.Fdio(0));
 exports.stdout = new exports.File(new exports.Fdio(1));
@@ -915,12 +917,12 @@ if (tty.isatty(1)) {
 }
 
 exports.usleep = function(n) {
-        return new Promise((resolve, reject) => {
-                setTimeout(() => {
-                        resolve();
-                }, n / 1000);
-        });
-}
+	return new Promise((resolve, reject) => {
+		setTimeout(() => {
+			resolve();
+		}, n / 1000);
+	});
+};
 
 exports.getopt = async function(plain, withargs) {
 	let argv = process.argv;
@@ -942,7 +944,7 @@ exports.getopt = async function(plain, withargs) {
 					let e = new Error("Unknown option " + trunc);
 					e.unknown = argv[optind];
 					e.optind = optind;
-					throw(e);
+					throw e;
 				}
 			} else if (argv[optind] in plain) {
 				await plain[argv[optind]]();
@@ -954,13 +956,13 @@ exports.getopt = async function(plain, withargs) {
 					let e = new Error("No argument given for " + argv[optind]);
 					e.unknown = argv[optind];
 					e.optind = optind;
-					throw(e);
+					throw e;
 				}
 			} else {
 				let e = new Error("Unknown option " + argv[optind]);
 				e.unknown = argv[optind];
 				e.optind = optind;
-				throw(e);
+				throw e;
 			}
 		} else if (argv[optind].startsWith("-")) {
 			let trunc = argv[optind].substr(0, 2);
@@ -981,13 +983,13 @@ exports.getopt = async function(plain, withargs) {
 					let e = new Error("No argument given for " + trunc);
 					e.unknown = argv[optind];
 					e.optind = optind;
-					throw(e);
+					throw e;
 				}
 			} else {
 				let e = new Error("Unknown option " + argv[optind]);
 				e.unknown = argv[optind];
 				e.optind = optind;
-				throw(e);
+				throw e;
 			}
 		} else {
 			break;
@@ -1000,11 +1002,12 @@ exports.getopt = async function(plain, withargs) {
 exports.call = function(f) {
 	let ret = f();
 	if (ret instanceof Promise) {
-		ret.then(function() {
-			;
-		}, function(err) {
-			console.error(err);
-			process.exit(1);
-		});
+		ret.then(
+			function() {},
+			function(err) {
+				console.error(err);
+				process.exit(1);
+			}
+		);
 	}
 };

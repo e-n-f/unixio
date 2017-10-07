@@ -1,6 +1,6 @@
-'use strict';
+"use strict";
 
-let unixio = require('../index.js');
+let unixio = require("../index.js");
 
 let pipe = new unixio.Mempipe();
 
@@ -41,21 +41,23 @@ async function readloop() {
 }
 
 function readfrom() {
-	readloop().then(function() {
-		;
-	}, function(err) {
-		console.error(err);
-		process.exit(1);
-	});
+	readloop().then(
+		function() {},
+		function(err) {
+			console.error(err);
+			process.exit(1);
+		}
+	);
 }
 
 function writeto() {
-	writeloop().then(function() {
-		;
-	}, function(err) {
-		console.error(err);
-		process.exit(1);
-	});
+	writeloop().then(
+		function() {},
+		function(err) {
+			console.error(err);
+			process.exit(1);
+		}
+	);
 }
 
 setTimeout(writeto, 1000);

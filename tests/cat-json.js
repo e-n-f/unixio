@@ -1,8 +1,8 @@
 #!/usr/local/bin/node
 
-'use strict';
+"use strict";
 
-let unixio = require('../index.js');
+let unixio = require("../index.js");
 
 async function cat(fp) {
 	let depth = 0;
@@ -17,10 +17,10 @@ async function cat(fp) {
 
 		let out = "";
 
-		if (s == '{' || s == '[') {
+		if (s == "{" || s == "[") {
 			depth++;
 		}
-		if (s == '}' || s == ']') {
+		if (s == "}" || s == "]") {
 			depth--;
 
 			out += "\n";
@@ -32,7 +32,7 @@ async function cat(fp) {
 
 		out += s;
 
-		if (s == '[' || s == '{' || s == ',') {
+		if (s == "[" || s == "{" || s == ",") {
 			out += "\n";
 			let i;
 			for (i = 0; i < depth; i++) {
