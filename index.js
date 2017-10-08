@@ -1000,7 +1000,10 @@ exports.getopt = async function(plain, withargs) {
 };
 
 exports.call = function(f) {
-	let ret = f();
+	let arg = Array.from(arguments);
+	arg.splice(0, 1);
+
+	let ret = f(...arg);
 	if (ret instanceof Promise) {
 		ret.then(
 			function() {},
