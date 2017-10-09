@@ -79,7 +79,7 @@ buffer for the next `getc`.
 
 Reads one UTF-32 character from the stream, or returns unixio.EOF;
 
-## try { u = await fp.putc(u); }
+## try { u = await fp.putu(u); }
 
 Writes one UTF-32 character to the stream.
 
