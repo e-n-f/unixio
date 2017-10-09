@@ -54,9 +54,9 @@ Reads one byte from the stream, or returns unixio.EOF;
 
 Writes one byte to the stream.
 
-## try { n = await fp.ungetb(b); }
+## try { b = await fp.ungetb(b); }
 
-Puts a byte back into the buffer for the next `read`.
+Puts a byte back into the buffer for the next `getb`.
 
 ## try { c = await fp.getc(); }
 
@@ -66,9 +66,31 @@ Reads one UTF-16 character from the stream, or returns unixio.EOF;
 
 Writes one UTF-16 character to the stream.
 
-## try { n = await fp.ungetc(c); }
+## try { c = await fp.ungetc(c); }
 
-Puts a UTF-16 character back into the buffer for the next `read`.
+Puts a UTF-16 character back into the buffer for the next `getc`.
+
+## try { c = await fp.peekc(); }
+
+Returns the next UTF-16 character to be read, but leaves it in the
+buffer for the next `getc`.
+
+## try { u = await fp.getu(); }
+
+Reads one UTF-32 character from the stream, or returns unixio.EOF;
+
+## try { u = await fp.putc(u); }
+
+Writes one UTF-32 character to the stream.
+
+## try { u = await fp.ungetu(u); }
+
+Puts a UTF-32 character back into the buffer for the next `read`.
+
+## try { u = await fp.peeku(); }
+
+Returns the next UTF-32 character to be read, but leaves it in the
+buffer for the next `getu`.
 
 ## try { s = await fp.gets(); }
 

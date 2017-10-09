@@ -450,7 +450,7 @@ exports.File = function(stream) {
 		return await this.stream.close();
 	};
 
-	this.getc = function() {
+	this.getc1 = function(utf32) {
 		let b = this.getb();
 		if (!(b instanceof Promise) && b < 0x80) {
 			return b;
@@ -518,15 +518,19 @@ exports.File = function(stream) {
 						if ((b3 & 0xc0) == 0x80) {
 							c |= b3 & 0x3f;
 
-							// UTF-16 surrogate pair
-							c -= 0x010000;
-							let c1 = (c >> 10) + 0xd800;
-							let c2 = (c & ((1 << 10) - 1)) + 0xdc00;
+							if (utf32) {
+								return c;
+							} else {
+								// UTF-16 surrogate pair
+								c -= 0x010000;
+								let c1 = (c >> 10) + 0xd800;
+								let c2 = (c & ((1 << 10) - 1)) + 0xdc00;
 
-							c = this.ungetc(c2);
-							c = c instanceof Promise ? await c : c;
+								c = this.ungetc(c2);
+								c = c instanceof Promise ? await c : c;
 
-							return c1;
+								return c1;
+							}
 						} else {
 							this.ungetb(b3);
 							this.ungetb(b2);
@@ -550,7 +554,15 @@ exports.File = function(stream) {
 		})();
 	};
 
-	this.ungetc = function(c) {
+	this.getc = function() {
+		return this.getc1(false);
+	};
+
+	this.getu = function() {
+		return this.getc1(true);
+	};
+
+	this.ungetc = this.ungetu = function(c) {
 		// This knows that this.ungetb() is synchronous
 
 		if (c <= 0x7f) {
@@ -558,10 +570,15 @@ exports.File = function(stream) {
 		} else if (c <= 0x7ff) {
 			this.ungetb(0x80 | (c & 0x3f));
 			this.ungetb(0xc0 | (c >> 6));
-		} else {
+		} else if (c <= 0xffff) {
 			this.ungetb(0x80 | (c & 0x3f));
 			this.ungetb(0x80 | ((c >> 6) & 0x3f));
 			this.ungetb(0xe0 | (c >> 12));
+		} else {
+			this.ungetb(0x80 | (c & 0x3f));
+			this.ungetb(0x80 | ((c >> 6) & 0x3f));
+			this.ungetb(0x80 | ((c >> 12) & 0x3f));
+			this.ungetb(0xf0 | (c >> 18));
 		}
 
 		return c;
@@ -592,7 +609,7 @@ exports.File = function(stream) {
 		}
 	};
 
-	this.putc = function(c) {
+	this.putc = this.putu = function(c) {
 		if (this.surrogate < 0 && c < 0x80) {
 			// Either the actual byte put, or the Promise to do it
 			return this.putb(c);
@@ -682,6 +699,20 @@ exports.File = function(stream) {
 
 		// Knows that ungetc() is synchronous;
 		return this.ungetc(c);
+	};
+
+	this.peeku = function() {
+		let c = this.getu();
+		if (c instanceof Promise) {
+			return (async () => {
+				c = await c;
+				// Knows that ungetc() is synchronous;
+				return this.ungetu(c);
+			})();
+		}
+
+		// Knows that ungetc() is synchronous;
+		return this.ungetu(c);
 	};
 
 	this.ilseq = async function() {
