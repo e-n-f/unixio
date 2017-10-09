@@ -85,7 +85,7 @@ Writes one UTF-32 character to the stream.
 
 ## try { u = await fp.ungetu(u); }
 
-Puts a UTF-32 character back into the buffer for the next `read`.
+Puts a UTF-32 character back into the buffer for the next `getu`.
 
 ## try { u = await fp.peeku(); }
 
