@@ -687,6 +687,20 @@ exports.File = function(stream) {
 		}
 	};
 
+	this.peekb = function() {
+		let b = this.getb();
+		if (b instanceof Promise) {
+			return (async () => {
+				b = await b;
+				// Knows that ungetb() is synchronous;
+				return this.ungetb(b);
+			})();
+		}
+
+		// Knows that ungetb() is synchronous;
+		return this.ungetb(b);
+	};
+
 	this.peekc = function() {
 		let c = this.getc();
 		if (c instanceof Promise) {

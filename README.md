@@ -58,6 +58,11 @@ Writes one byte to the stream.
 
 Puts a byte back into the buffer for the next `getb`.
 
+## try { b = await fp.peekb(); }
+
+Returns the next byte to be read, but leaves it in the
+buffer for the next `getb`.
+
 ## try { c = await fp.getc(); }
 
 Reads one UTF-16 character from the stream, or returns unixio.EOF;
