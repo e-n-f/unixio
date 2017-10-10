@@ -609,7 +609,7 @@ exports.File = function(stream) {
 		}
 	};
 
-	this.putc = this.putu = function(c) {
+	this.putc1 = function(c, utf32) {
 		if (this.surrogate < 0 && c < 0x80) {
 			// Either the actual byte put, or the Promise to do it
 			return this.putb(c);
@@ -617,7 +617,7 @@ exports.File = function(stream) {
 
 		return (async () => {
 			if (this.surrogate >= 0) {
-				if (c >= 0xdc00 && c <= 0xdffff) {
+				if (c >= 0xdc00 && c <= 0xdffff && !utf32) {
 					let c1 = this.surrogate - 0xd800;
 					let c2 = c - 0xdc00;
 					this.surrogate = -1;
@@ -647,7 +647,7 @@ exports.File = function(stream) {
 				t = this.putb(0x80 | (c & 0x3f));
 				t = t instanceof Promise ? await t : t;
 			} else if (c <= 0xffff) {
-				if (c >= 0xd800 && c <= 0xdbff) {
+				if (c >= 0xd800 && c <= 0xdbff && !utf32) {
 					// First char of UTF-16 surrogate pair
 					this.surrogate = c;
 					return c;
@@ -677,6 +677,14 @@ exports.File = function(stream) {
 
 			return c;
 		})();
+	};
+
+	this.putc = function(c) {
+		return this.putc1(c, false);
+	};
+
+	this.putu = function(c) {
+		return this.putc1(c, true);
 	};
 
 	this.puts = async function(s) {

@@ -65,11 +65,14 @@ buffer for the next `getb`.
 
 ## try { c = await fp.getc(); }
 
-Reads one UTF-16 character from the stream, or returns unixio.EOF;
+Reads one UTF-16 character from the stream, or returns unixio.EOF.
+If the character that is read is the first half of a surrogate pair,
+the next `getc` will return the second half.
 
 ## try { c = await fp.putc(c); }
 
-Writes one UTF-16 character to the stream.
+Writes one UTF-16 character to the stream. If you write the first half
+of a surrogate pair, it will be buffered until the second half is written.
 
 ## try { c = await fp.ungetc(c); }
 
