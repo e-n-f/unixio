@@ -617,7 +617,7 @@ exports.File = function(stream) {
 
 		return (async () => {
 			if (this.surrogate >= 0) {
-				if (c >= 0xdc00 && c <= 0xdffff && !utf32) {
+				if (c >= 0xdc00 && c <= 0xdfff && !utf32) {
 					let c1 = this.surrogate - 0xd800;
 					let c2 = c - 0xdc00;
 					this.surrogate = -1;
